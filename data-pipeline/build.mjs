@@ -272,6 +272,39 @@ async function bakeThumbs(home) {
   log(`home thumbs: ${cards.filter((c) => c.thumb).length}/${cards.length} baked, ${(bytes / 1024).toFixed(0)} KB`);
 }
 
+// Set logos come from the same slow image host, so each one is baked once into cache/logos (committed,
+// ~10 KB each) and published as dist/logos/<lang>_<set>.webp; sets get `lf` (logo file) when baked.
+// Sets TCGdex has no logo for (all Japanese ones) get a set-code badge in the app instead.
+async function bakeLogos(indexes) {
+  const { default: sharp } = await import('sharp');
+  const cacheDir = path.join(CACHE, 'logos');
+  const outDir = path.join(DIST, 'logos');
+  await fs.mkdir(cacheDir, { recursive: true });
+  await fs.rm(outDir, { recursive: true, force: true });
+  await fs.mkdir(outDir, { recursive: true });
+  const jobs = Object.entries(indexes).flatMap(([lang, ix]) => ix.sets.filter((s) => s.logo).map((s) => ({ lang, s })));
+  let fresh = 0, failed = 0;
+  await pool(jobs, 8, async ({ lang, s }) => {
+    const file = `${lang}_${s.id.replace(/[^A-Za-z0-9._-]/g, '_')}.webp`;
+    const cached = path.join(cacheDir, file);
+    let ok = await fs.access(cached).then(() => true, () => false);
+    for (let i = 0; !ok && i < 3; i++) {
+      try {
+        const r = await fetch(`${s.logo}.png`, { headers: { 'User-Agent': 'tcg-marketplace-data/1.0' } });
+        if (r.status === 404) break;
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const out = await sharp(Buffer.from(await r.arrayBuffer())).resize({ width: 240, height: 110, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+        await fs.writeFile(cached, out);
+        ok = true; fresh++;
+      } catch { await new Promise((res) => setTimeout(res, 1500 * (i + 1))); }
+    }
+    if (!ok) { failed++; return; }
+    await fs.copyFile(cached, path.join(outDir, file));
+    s.lf = `logos/${file}`;
+  });
+  log(`set logos: ${jobs.length - failed}/${jobs.length} baked (${fresh} new)`);
+}
+
 // ---------- main ----------
 await fs.mkdir(DIST, { recursive: true });
 const enMeta = await englishMeta();
@@ -290,6 +323,10 @@ for (const lang of LANGS) {
     await writeJson(path.join(DIST, `index-${lang}.json`), indexes[lang]);
     log(`wrote index-${lang}.json: ${indexes[lang].cards.length} cards, ${indexes[lang].species.length} species`);
   }
+}
+if (!SKIP_INDEX) {
+  await bakeLogos(indexes);
+  for (const [lang, ix] of Object.entries(indexes)) await writeJson(path.join(DIST, `index-${lang}.json`), ix);
 }
 if (!SKIP_HOME) {
   const en = indexes.en ?? (await buildIndex('en', enMeta));
