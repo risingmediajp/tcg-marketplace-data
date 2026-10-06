@@ -1,0 +1,52 @@
+{
+  "languages": [
+    "en",
+    "ja",
+    "fr",
+    "de",
+    "es",
+    "it",
+    "pt"
+  ],
+  "excludeSeries": [
+    "tcgp"
+  ],
+  "recentSets": 6,
+  "grailSeries": [
+    "base",
+    "gym",
+    "neo",
+    "lc",
+    "ecard"
+  ],
+  "grailRarityPattern": "holo|star|shining|crystal|secret",
+  "heatingMinUsd": 5,
+  "remote": {
+    "minAppVersion": 1,
+    "banner": null,
+    "scans": {
+      "freePerDay": 20,
+      "rewardedBonus": 10
+    },
+    "ads": {
+      "interstitialMinSec": 240,
+      "installGraceSec": 600
+    },
+    "affiliate": {
+      "enabled": false,
+      "tcgplayerTemplate": "",
+      "ebayCampid": ""
+    }
+  },
+  "recognition": {
+    "model": "dinov2-small-int8.onnx",
+    "modelUrl": "https://huggingface.co/Xenova/dinov2-small/resolve/main/onnx/model_quantized.onnx",
+    "region": "art",
+    "pcaDims": 128,
+    "langs": [
+      "en",
+      "ja"
+    ],
+    "_why": "tools/recog eval 2026-10-02: int8 art crop = 94% top1 simulated, 27/30 same-art on real eBay photos; PCA128 no loss"
+  }
+}

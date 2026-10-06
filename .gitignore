@@ -1,0 +1,8 @@
+node_modules/
+data-pipeline/dist/
+data-pipeline/*.log
+data-pipeline/cache/img/
+data-pipeline/cache/embed/
+data-pipeline/cache/ptcg-db/
+data-pipeline/cache/official-ja.json
+tools/models/

@@ -1,0 +1,87 @@
+name: Nightly data build
+
+on:
+  schedule:
+    - cron: '30 12 * * *'   # 12:30 UTC — TCGdex prices refresh ~10:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nightly-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Any validation failure exits non-zero: nothing is deployed and the last good files stay live.
+      - name: Build indexes + home.json
+        run: node data-pipeline/build.mjs
+
+      # Raw card-art fingerprints (~90 MB): Actions cache first, else the single-commit embed-cache branch.
+      # Without them a run would re-download ~33k images from a slow host (hours).
+      - uses: actions/cache@v4
+        id: embedcache
+        with:
+          path: data-pipeline/cache/embed
+          key: embed-${{ github.run_id }}
+          restore-keys: embed-
+      - name: Seed fingerprints from the embed-cache branch
+        if: steps.embedcache.outputs.cache-matched-key == ''
+        run: |
+          git fetch --depth 1 origin embed-cache && git checkout FETCH_HEAD -- data-pipeline/cache/embed || echo "no embed-cache branch yet"
+      - name: Fingerprint before
+        id: before
+        run: echo "sum=$(cat data-pipeline/cache/embed/*.json 2>/dev/null | sha1sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+      - name: Recognition model
+        run: |
+          mkdir -p tools/models
+          node -e "const c=require('./data-pipeline/config.json').recognition; console.log(c.model + ' ' + c.modelUrl)" | {
+            read file url; [ -f "tools/models/$file" ] || curl -sSL --retry 3 -o "tools/models/$file" "$url"; }
+
+      # Incremental: only new cards are fingerprinted (official Japanese images fetched politely, memory only).
+      - name: Build recognition gallery
+        run: |
+          node tools/recog/official-ja.mjs
+          node tools/recog/build-embeddings.mjs
+          node tools/recog/build-twins.mjs
+          node tools/recog/build-art-twins.mjs
+
+      - name: Commit refreshed set cache
+        run: |
+          git config user.name "data-bot"
+          git config user.email "data-bot@users.noreply.github.com"
+          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt
+          if ! git diff --cached --quiet; then git commit -m "data: refresh cache" && git push; fi
+
+      # New fingerprints → replace the embed-cache branch with one fresh commit (no history growth).
+      - name: Update embed-cache branch
+        run: |
+          after=$(cat data-pipeline/cache/embed/*.json | sha1sum | cut -c1-12)
+          if [ "$after" != "${{ steps.before.outputs.sum }}" ]; then
+            tmp=$(mktemp -d) && cp -r data-pipeline/cache/embed "$tmp/" && cd "$tmp"
+            git init -q && git checkout -q -b embed-cache
+            mkdir -p data-pipeline/cache && mv embed data-pipeline/cache/
+            git add . && git -c user.name=data-bot -c user.email=data-bot@users.noreply.github.com commit -qm "embed cache"
+            git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" embed-cache
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: data-pipeline/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

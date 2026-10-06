@@ -1,0 +1,14 @@
+{
+  "name": "tcg-marketplace-data",
+  "private": true,
+  "type": "module",
+  "description": "Nightly data build for the TCG Marketplace app (card indexes, home showcase, image-recognition gallery) published to GitHub Pages.",
+  "scripts": {
+    "build": "node data-pipeline/build.mjs",
+    "recog": "node tools/recog/official-ja.mjs && node tools/recog/build-embeddings.mjs && node tools/recog/build-twins.mjs && node tools/recog/build-art-twins.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5",
+    "onnxruntime-node": "^1.30.0"
+  }
+}
