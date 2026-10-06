@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '30 12 * * *'   # 12:30 UTC — TCGdex prices refresh ~10:30 UTC
   workflow_dispatch:
+  # Changes to the pipeline itself rebuild immediately (the bot's own cache commits don't trigger runs).
+  push:
+    branches: [main]
+    paths: ['data-pipeline/*.mjs', 'data-pipeline/config.json', 'tools/**', 'package.json', '.github/workflows/**']
 
 permissions:
   contents: write
