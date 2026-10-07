@@ -64,6 +64,33 @@ jobs:
           node tools/recog/build-twins.mjs
           node tools/recog/build-art-twins.mjs
 
+      # English card thumbnails (~190 MB, ~10 KB each) served from Pages: Actions cache, else the
+      # single-commit thumbs-cache branch. Only new cards are downloaded (max 8000 per run).
+      - uses: actions/cache@v4
+        id: thumbcache
+        with:
+          path: data-pipeline/cache/thumbs
+          key: thumbs-${{ github.run_id }}
+          restore-keys: thumbs-
+      - name: Seed thumbnails from the thumbs-cache branch
+        if: steps.thumbcache.outputs.cache-matched-key == ''
+        run: |
+          git fetch --depth 1 origin thumbs-cache && git checkout FETCH_HEAD -- data-pipeline/cache/thumbs || echo "no thumbs-cache branch yet"
+      - name: Bake card thumbnails
+        id: thumbs
+        run: |
+          before=$(find data-pipeline/cache/thumbs -type f 2>/dev/null | wc -l)
+          node tools/bake-card-thumbs.mjs
+          after=$(find data-pipeline/cache/thumbs -type f | wc -l)
+          echo "changed=$([ "$before" != "$after" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+      - name: Update thumbs-cache branch
+        if: steps.thumbs.outputs.changed == '1'
+        run: |
+          tmp=$(mktemp -d) && mkdir -p "$tmp/data-pipeline/cache" && cp -r data-pipeline/cache/thumbs "$tmp/data-pipeline/cache/" && cd "$tmp"
+          git init -q && git checkout -q -b thumbs-cache
+          git add . && git -c user.name=data-bot -c user.email=data-bot@users.noreply.github.com commit -qm "thumbs cache"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" thumbs-cache
+
       - name: Commit refreshed set cache
         run: |
           git config user.name "data-bot"

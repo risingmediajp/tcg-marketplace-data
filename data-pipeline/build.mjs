@@ -172,11 +172,17 @@ async function buildIndex(lang, enMeta) {
 }
 
 // ---------- prices / showcase ----------
+// Headline price = the standard print (same rule as the app's mainUsd in www/js/data/prices.js, and the
+// version the TCGplayer link opens on) — not the max, which picked vintage 1st Edition / reverse holo.
+const MAIN_KEYS = ['holofoil', 'unlimited-holofoil', 'normal', 'unlimited-normal', 'unlimited', 'unlimitedHolofoil'];
 function usdOf(pricing) {
   const t = pricing?.tcgplayer;
   if (!t) return null;
-  const vals = Object.values(t).filter((v) => v && typeof v === 'object').map((v) => v.marketPrice ?? v.midPrice).filter((n) => n > 0);
-  return vals.length ? Math.max(...vals) : null;
+  const tv = (k) => (t[k] && typeof t[k] === 'object' ? t[k].marketPrice ?? t[k].midPrice ?? null : null);
+  for (const k of MAIN_KEYS) { const v = tv(k); if (v > 0) return v; }
+  const all = Object.keys(t).filter((k) => tv(k) > 0);
+  const pool = all.some((k) => !/^1st/i.test(k)) ? all.filter((k) => !/^1st/i.test(k)) : all;
+  return pool.length ? Math.min(...pool.map(tv)) : null;
 }
 const eurOf = (pricing) => pricing?.cardmarket?.trend || pricing?.cardmarket?.avg || null;
 
