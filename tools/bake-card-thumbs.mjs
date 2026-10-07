@@ -1,5 +1,6 @@
-// Card thumbnails on our own fast host. The card image host (assets.tcgdex.net) takes 1–3 s per image
-// with no CDN, so every English card's grid image is baked once into a ~10 KB WebP:
+// Card thumbnails on our own fast host (300 px: sharp in grids on 3x phones, and an instant clear picture
+// on the card page while the full-size image loads). The card image host (assets.tcgdex.net) takes 1–3 s per image
+// with no CDN, so every English card's grid image is baked once into a ~20 KB WebP:
 //   cache/thumbs/<same path as the image host>.webp   (persisted: Actions cache + thumbs-cache branch)
 //   dist/thumbs/...                                     (published on Pages next to the indexes)
 // Sets whose cards are all baked get `tb: 1` in index-en.json; the app only asks for thumbs of those
@@ -15,6 +16,8 @@ import sharp from 'sharp';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-pipeline');
 const DIST = path.join(ROOT, 'dist');
 const CACHE = path.join(ROOT, 'cache', 'thumbs');
+const WIDTH = 300, QUALITY = 68; // ~20 KB each
+// Made from the full-size image (the host's low.webp is only 245 px wide).
 const ASSETS = 'https://assets.tcgdex.net';
 const args = process.argv.slice(2);
 const MAX_NEW = Number(args[args.indexOf('--max-new') + 1]) || (args.includes('--max-new') ? 0 : 8000);
@@ -58,10 +61,10 @@ await Promise.all(Array.from({ length: 8 }, async () => {
     const { rel, si } = batch[next++];
     for (let i = 0; i < 3; i++) {
       try {
-        const r = await fetch(`${ASSETS}/${rel}/low.webp`, { headers: { 'User-Agent': 'tcg-marketplace-data/1.0' } });
+        const r = await fetch(`${ASSETS}/${rel}/high.webp`, { headers: { 'User-Agent': 'tcg-marketplace-data/1.0' } });
         if (r.status === 404) { missing.add(rel); bySet.get(si).need--; break; }
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const out = await sharp(Buffer.from(await r.arrayBuffer())).resize({ width: 200 }).webp({ quality: 68 }).toBuffer();
+        const out = await sharp(Buffer.from(await r.arrayBuffer())).resize({ width: WIDTH }).webp({ quality: QUALITY }).toBuffer();
         const file = path.join(CACHE, `${rel}.webp`);
         await fs.mkdir(path.dirname(file), { recursive: true });
         await fs.writeFile(file, out);

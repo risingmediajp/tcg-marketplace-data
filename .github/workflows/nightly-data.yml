@@ -34,6 +34,10 @@ jobs:
       - name: Build indexes + home.json
         run: node data-pipeline/build.mjs
 
+      # TCGplayer prices + pictures for Japanese cards (tcgcsv.com, once a day, only when it has changed).
+      - name: TCGplayer Japan prices and pictures
+        run: node tools/jp-prices.mjs
+
       # Raw card-art fingerprints (~90 MB): Actions cache first, else the single-commit embed-cache branch.
       # Without them a run would re-download ~33k images from a slow host (hours).
       - uses: actions/cache@v4
@@ -64,14 +68,14 @@ jobs:
           node tools/recog/build-twins.mjs
           node tools/recog/build-art-twins.mjs
 
-      # English card thumbnails (~190 MB, ~10 KB each) served from Pages: Actions cache, else the
+      # English card thumbnails (300 px, ~380 MB, ~20 KB each) served from Pages: Actions cache, else the
       # single-commit thumbs-cache branch. Only new cards are downloaded (max 8000 per run).
       - uses: actions/cache@v4
         id: thumbcache
         with:
           path: data-pipeline/cache/thumbs
-          key: thumbs-${{ github.run_id }}
-          restore-keys: thumbs-
+          key: thumbs300-${{ github.run_id }}
+          restore-keys: thumbs300-
       - name: Seed thumbnails from the thumbs-cache branch
         if: steps.thumbcache.outputs.cache-matched-key == ''
         run: |
@@ -95,7 +99,7 @@ jobs:
         run: |
           git config user.name "data-bot"
           git config user.email "data-bot@users.noreply.github.com"
-          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos
+          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos data-pipeline/cache/tcgcsv-ja.json
           if ! git diff --cached --quiet; then git commit -m "data: refresh cache" && git push; fi
 
       # New fingerprints → replace the embed-cache branch with one fresh commit (no history growth).
