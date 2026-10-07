@@ -35,7 +35,7 @@
     "affiliate": {
       "enabled": true,
       "tcgplayerTemplate": "https://partner.tcgplayer.com/AgXzna?u={url}",
-      "ebayCampid": ""
+      "ebayCampid": "5339218916"
     }
   },
   "recognition": {
