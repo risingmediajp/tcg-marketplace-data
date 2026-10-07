@@ -46,10 +46,11 @@ jobs:
           path: data-pipeline/cache/embed
           key: embed-${{ github.run_id }}
           restore-keys: embed-
+      # (git checkout <branch> -- path also STAGES the files; the reset keeps them out of main's commits.)
       - name: Seed fingerprints from the embed-cache branch
         if: steps.embedcache.outputs.cache-matched-key == ''
         run: |
-          git fetch --depth 1 origin embed-cache && git checkout FETCH_HEAD -- data-pipeline/cache/embed || echo "no embed-cache branch yet"
+          git fetch --depth 1 origin embed-cache && git checkout FETCH_HEAD -- data-pipeline/cache/embed && git reset -q -- data-pipeline/cache/embed || echo "no embed-cache branch yet"
       - name: Fingerprint before
         id: before
         run: echo "sum=$(cat data-pipeline/cache/embed/*.json 2>/dev/null | sha1sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
@@ -79,7 +80,7 @@ jobs:
       - name: Seed thumbnails from the thumbs-cache branch
         if: steps.thumbcache.outputs.cache-matched-key == ''
         run: |
-          git fetch --depth 1 origin thumbs-cache && git checkout FETCH_HEAD -- data-pipeline/cache/thumbs || echo "no thumbs-cache branch yet"
+          git fetch --depth 1 origin thumbs-cache && git checkout FETCH_HEAD -- data-pipeline/cache/thumbs && git reset -q -- data-pipeline/cache/thumbs || echo "no thumbs-cache branch yet"
       - name: Bake card thumbnails
         id: thumbs
         run: |
