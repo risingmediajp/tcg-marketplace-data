@@ -170,7 +170,15 @@ if (leftovers.length) {
       const setId = enSetByName.get(m[2].toLowerCase());
       if (!setId || !POOLS[c.set.id].includes(setId)) continue;
       const enId = `${setId}-${Number(m[3])}`;
-      if (en.cards.some((x) => x[0] === enId && x[7])) { found = enId; break; }
+      if (!en.cards.some((x) => x[0] === enId && x[7])) continue;
+      // The search also hits pages that merely contain the name ("カツラ" → Blaine's Magmar): the page's
+      // own Japanese-name field must be exactly this card's name.
+      await sleep(250);
+      const w = await getJson(`${BULBA}?action=query&prop=revisions&titles=${encodeURIComponent(title)}&rvprop=content&rvslots=main&format=json`);
+      const text = Object.values(w?.query?.pages ?? {})[0]?.revisions?.[0]?.slots?.main?.['*'] ?? '';
+      const jnames = [...text.matchAll(/\|\s*jname\s*=\s*([^\n|]+)/g)].map((x) => x[1].trim());
+      if (!jnames.includes(c.name.trim())) continue;
+      found = enId; break;
     }
     bulbaNames[c.id] = found;
     if (found) { out[c.id] = found; got++; }
