@@ -33,6 +33,9 @@ jobs:
       # Any validation failure exits non-zero: nothing is deployed and the last good files stay live.
       - name: Build indexes + home.json
         run: node data-pipeline/build.mjs
+      # Logos TCGdex lacks: English logo for other-language sets, Bulbapedia for Japanese sets (cached).
+      - name: Fill missing set logos
+        run: node tools/fill-logos.mjs
 
       # TCGplayer prices + pictures for Japanese cards (tcgcsv.com, once a day, only when it has changed).
       - name: TCGplayer Japan prices and pictures
@@ -85,6 +88,7 @@ jobs:
         id: thumbs
         run: |
           before=$(find data-pipeline/cache/thumbs -type f 2>/dev/null | wc -l)
+          node tools/fill-ja-art.mjs
           node tools/bake-card-thumbs.mjs
           after=$(find data-pipeline/cache/thumbs -type f | wc -l)
           echo "changed=$([ "$before" != "$after" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
@@ -100,7 +104,7 @@ jobs:
         run: |
           git config user.name "data-bot"
           git config user.email "data-bot@users.noreply.github.com"
-          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos data-pipeline/cache/tcgcsv-ja.json
+          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos data-pipeline/cache/tcgcsv-ja.json data-pipeline/cache/bulba-logos.json data-pipeline/cache/ja-art
           if ! git diff --cached --quiet; then git commit -m "data: refresh cache" && git push; fi
 
       # New fingerprints → replace the embed-cache branch with one fresh commit (no history growth).
