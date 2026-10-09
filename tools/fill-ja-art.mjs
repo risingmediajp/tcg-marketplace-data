@@ -98,13 +98,18 @@ async function detail(lang, id) {
 const fixedDmg = (a) => a.replace(/=(.*)$/, (m, v) => (/^\d+$/.test(v) ? `=${v}` : '='));
 const fp = (d) => {
   if (!d) return null;
-  if (d.cat === 'Pokemon') return `P|${d.dex.join(',')}|${d.hp}|${d.stage}|${d.retreat}|${d.atk.map(fixedDmg).join(';')}`;
+  // A Pokémon with no species, HP or attacks recorded has nothing to match on (it would match everything).
+  if (d.cat === 'Pokemon') return d.dex.length && d.hp && d.atk.length ? `P|${d.dex.join(',')}|${d.hp}|${d.stage}|${d.retreat}|${d.atk.map(fixedDmg).join(';')}` : null;
   if (d.cat === 'Energy') return `E|${d.energy}`;
   return null;
 };
 const enIdx = new Map(en.sets.map((s, i) => [s.id, i]));
 const enCardsBySet = (sid) => en.cards.filter((c) => c[2] === enIdx.get(sid) && c[7]).map(([id]) => id);
 
+// Two English prints with identical stats (owner decision 2026-10-10): show BOTH as a diagonal
+// half-and-half, marked unverified (value 2), and keep the pair in cache/ja-art/ambiguous.json so it can
+// be resolved later (replace the entry in matches.json with the right enId and delete the baked picture).
+const ambiguous = await readJson(path.join(CACHE, 'ambiguous.json'), {});
 const vintage = stillMissing().filter((c) => POOLS[c.set.id]);
 if (vintage.length) {
   log(`ja-art: fingerprinting ${vintage.length} vintage cards`);
@@ -139,11 +144,13 @@ if (vintage.length) {
     for (const esid of POOLS[c.set.id]) {
       const cands = poolFp.get(esid)?.get(f);
       if (cands?.length === 1) { out[c.id] = cands[0]; hit++; done = true; break; }
+      if (cands?.length === 2 && !ambiguous[c.id]) ambiguous[c.id] = cands; // two prints, identical stats
     }
     if (done || !l) continue;
     for (const esid of POOLS[c.set.id]) {
       const cands = poolLoose.get(esid)?.get(l);
       if (cands?.length === 1) { out[c.id] = cands[0]; hitLoose++; break; }
+      if (cands?.length === 2 && !ambiguous[c.id]) ambiguous[c.id] = cands;
     }
   }
   if (hitLoose) log(`ja-art: vintage loose-matched ${hitLoose} more`);
@@ -243,8 +250,42 @@ if (off.length) {
 
 // ---------- publish ----------
 await writeJson(path.join(CACHE, 'matches.json'), out);
-const cards = Object.fromEntries(Object.entries(out).filter(([id]) => missing.some((c) => c.id === id) || out[id] === 1));
-await writeJson(path.join(DIST, 'ja-art.json'), { v: 1, cards });
+// ---------- 4. unverified pairs: diagonal half-and-half of both candidate prints ----------
+// The English print's picture: our baked thumbnail, else straight from the image host.
+const enThumb = async (eid) => {
+  const row = en.cards.find((x) => x[0] === eid);
+  const s = en.sets[row[2]];
+  const file = path.join(ROOT, 'cache', 'thumbs', 'en', s.serie, s.id, `${row[3]}.webp`);
+  if (await exists(file)) return file;
+  const bytes = await getBytes(`https://assets.tcgdex.net/en/${s.serie}/${s.id}/${row[3]}/high.webp`);
+  if (!bytes) throw new Error(`no picture for ${eid}`);
+  return bytes;
+};
+{
+  let made = 0;
+  for (const c of stillMissing()) {
+    const pair = ambiguous[c.id];
+    if (!pair) continue;
+    try {
+      const W = 300, H = 419;
+      const a = await sharp(await enThumb(pair[0])).resize(W, H, { fit: 'cover' }).toBuffer();
+      const mask = Buffer.from(`<svg width="${W}" height="${H}"><polygon points="${W},0 ${W},${H} 0,${H}" fill="#fff"/></svg>`);
+      const b = await sharp(await enThumb(pair[1])).resize(W, H, { fit: 'cover' }).ensureAlpha().composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
+      const line = Buffer.from(`<svg width="${W}" height="${H}"><line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#000" stroke-width="5"/><line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#fff" stroke-width="2"/></svg>`);
+      const file = thumbPath(c);
+      await fs.mkdir(path.dirname(file), { recursive: true });
+      await fs.writeFile(file, await sharp(a).composite([{ input: b }, { input: line }]).webp({ quality: 72 }).toBuffer());
+      out[c.id] = 2; made++;
+    } catch (e) { console.log(`::warning::split ${c.id}: ${e.message}`); }
+  }
+  await writeJson(path.join(CACHE, 'ambiguous.json'), ambiguous);
+  if (made) log(`ja-art: ${made} unverified split pictures baked`);
+}
+
+await writeJson(path.join(CACHE, 'matches.json'), out);
+const cards = Object.fromEntries(Object.entries(out).filter(([id]) => missing.some((c) => c.id === id) || out[id] === 1 || out[id] === 2));
+const unverified = Object.fromEntries(Object.entries(ambiguous).filter(([id]) => cards[id] === 2));
+await writeJson(path.join(DIST, 'ja-art.json'), { v: 2, cards, unverified });
 if (await exists(THUMBS)) await fs.cp(THUMBS, path.join(DIST, 'thumbs', 'ja'), { recursive: true });
 const left = stillMissing();
 log(`ja-art: ${Object.keys(cards).length} filled (${Object.values(cards).filter((v) => v === 1).length} own pictures), ${left.length} still without`);
