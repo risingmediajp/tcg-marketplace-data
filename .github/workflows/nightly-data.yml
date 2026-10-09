@@ -40,6 +40,8 @@ jobs:
       # TCGplayer prices + pictures for Japanese cards (tcgcsv.com, once a day, only when it has changed).
       - name: TCGplayer Japan prices and pictures
         run: node tools/jp-prices.mjs
+      - name: TCGplayer pictures for English cards without one
+        run: node tools/en-images.mjs
 
       # Raw card-art fingerprints (~90 MB): Actions cache first, else the single-commit embed-cache branch.
       # Without them a run would re-download ~33k images from a slow host (hours).
@@ -104,7 +106,7 @@ jobs:
         run: |
           git config user.name "data-bot"
           git config user.email "data-bot@users.noreply.github.com"
-          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos data-pipeline/cache/tcgcsv-ja.json data-pipeline/cache/bulba-logos.json data-pipeline/cache/ja-art
+          git add data-pipeline/cache/en data-pipeline/cache/ja data-pipeline/cache/fr data-pipeline/cache/de data-pipeline/cache/es data-pipeline/cache/it data-pipeline/cache/pt data-pipeline/cache/logos data-pipeline/cache/tcgcsv-ja.json data-pipeline/cache/tcgcsv-en.json data-pipeline/cache/bulba-logos.json data-pipeline/cache/ja-art
           if ! git diff --cached --quiet; then git commit -m "data: refresh cache" && git push; fi
 
       # New fingerprints → replace the embed-cache branch with one fresh commit (no history growth).
