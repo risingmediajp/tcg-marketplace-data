@@ -37,12 +37,18 @@ async function get(url) {
   }
 }
 const normNum = (n) => { const s = String(n ?? '').split('/')[0].trim(); return /^\d+$/.test(s) ? String(Number(s)) : s.toUpperCase(); };
-const alnum = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+// Accent-insensitive: TCGplayer writes "Pokemon Breeder", TCGdex "Pokémon Breeder".
+const alnum = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 // "Charizard ex - 199/165" / "Noivern (1/30)" → "charizardex" / "noivern"
 const productName = (p) => alnum(p.name.replace(/\s*[-–(]\s*[A-Za-z0-9]+\/\d+\)?\s*$/, '').replace(/\s*\(.*\)\s*$/, '').replace(/\s*\[.*\]\s*$/, ''));
 // A bracket marks a variant print unless it is a kit disambiguator: "(#1)" or "(Sylveon)".
 const isVariant = (p) => /\(/.test(p.name) && !/\((#\d+|[A-Z][a-z]+)\)\s*$/.test(p.name);
 const day = (d) => Date.parse(String(d).slice(0, 10)) / 864e5;
+// TCGdex "<era> Black Star Promos" sets → TCGplayer's group names.
+const PROMO_GROUPS = {
+  hgssp: 'HGSS Promos', bwp: 'Black and White Promos', xyp: 'XY Promos', smp: 'SM Promos', dpp: 'Diamond and Pearl Promos',
+  swshp: 'SWSH: Sword & Shield Promo Cards', svp: 'SV: Scarlet & Violet Promo Cards', mep: 'ME: Mega Evolution Promo',
+};
 
 async function sync(ix) {
   const need = new Map(); // setIndex -> Map(num -> [card])
@@ -61,9 +67,11 @@ async function sync(ix) {
     const s = ix.sets[si];
     let cands = [], loose = false;
     const a = byAbbr.get(alnum(s.abbr));
-    const kit = s.name.match(/trainer kit \((.+?)\)/i);           // "XY trainer Kit (Noivern)"
+    const kit = s.name.match(/trainer kit.*?\((.+?)\)/i);         // "XY trainer Kit (Noivern)", "EX trainer Kit 2 (Minun)"
     const mcd = s.name.match(/mcdonald.*?(\d{4})/i);                // "McDonald's Collection 2021"
+    const promo = PROMO_GROUPS[s.id];                              // "HGSS Black Star Promos" → "HGSS Promos"
     if (a) cands = [a];
+    else if (promo) { cands = groups.filter((g) => alnum(g.name) === alnum(promo)); loose = true; }
     else if (kit) { cands = groups.filter((g) => /trainer kit/i.test(g.name) && alnum(g.name).includes(alnum(kit[1]))); loose = true; }
     else if (mcd) { cands = groups.filter((g) => /mcdonald/i.test(g.name) && (g.name.includes(mcd[1]) || alnum(g.abbreviation) === `m${mcd[1].slice(2)}`)); loose = true; }
     else {
@@ -97,6 +105,16 @@ async function sync(ix) {
         // Several cards share a number (kits, sub-sets) or the set match was loose: the name must agree.
         const card = cs.length === 1 && !loose ? cs[0] : cs.find((c) => c.name === pn || (pn && (c.name.startsWith(pn) || pn.startsWith(c.name))));
         if (card) hits.push([card.id, p.productId, isVariant(p) ? 0 : 1]);
+      }
+      // Leftovers: a card whose name matches exactly one product in the group gets that product even when
+      // the numbers don't line up (kits list "Pokémon Collector" once for both copies; variant letters).
+      const taken = new Set(hits.map((h) => h[0]));
+      const prodByName = new Map();
+      for (const p of products) if (p.imageCount > 0 || p.imageUrl) (prodByName.get(productName(p)) ?? prodByName.set(productName(p), []).get(productName(p))).push(p);
+      for (const c of allCards) {
+        if (taken.has(c.id)) continue;
+        const ps = prodByName.get(c.name);
+        if (ps?.length === 1) hits.push([c.id, ps[0].productId, isVariant(ps[0]) ? 0 : 1]);
       }
       if (hits.length > bestHits) { bestHits = hits.length; best = hits; }
     }
