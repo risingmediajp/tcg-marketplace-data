@@ -151,6 +151,35 @@ if (vintage.length) {
   log(`ja-art: vintage matched ${hit}/${vintage.length}`);
 }
 
+// ---------- 1b. vintage leftovers (trainers, energy, look-alike Pokémon): Bulbapedia by Japanese name ----------
+// Bulbapedia card pages carry the Japanese name, so searching it with the English set's name returns
+// "Switch (Base Set 95)" → base1-95. Only a title in one of the paired English sets is accepted.
+const bulbaNames = await readJson(path.join(CACHE, 'bulba-names.json'), {}); // jaId -> enId | null
+const enSetByName = new Map(en.sets.map((s) => [s.name.toLowerCase(), s.id]));
+const leftovers = stillMissing().filter((c) => POOLS[c.set.id] && bulbaNames[c.id] === undefined);
+if (leftovers.length) {
+  let got = 0;
+  for (const c of leftovers) {
+    const poolNames = POOLS[c.set.id].map((id) => en.sets.find((s) => s.id === id)?.name).filter(Boolean);
+    await sleep(300);
+    const r = await getJson(`${BULBA}?action=query&list=search&srsearch=${encodeURIComponent(`"${c.name}" ${poolNames[0]}`)}&srlimit=8&format=json`);
+    let found = null;
+    for (const { title } of r?.query?.search ?? []) {
+      const m = title.match(/^(.*) \((.+?) (\d+)\)$/);
+      if (!m) continue;
+      const setId = enSetByName.get(m[2].toLowerCase());
+      if (!setId || !POOLS[c.set.id].includes(setId)) continue;
+      const enId = `${setId}-${Number(m[3])}`;
+      if (en.cards.some((x) => x[0] === enId && x[7])) { found = enId; break; }
+    }
+    bulbaNames[c.id] = found;
+    if (found) { out[c.id] = found; got++; }
+  }
+  await writeJson(path.join(CACHE, 'bulba-names.json'), bulbaNames);
+  log(`ja-art: Bulbapedia name lookups matched ${got}/${leftovers.length}`);
+}
+for (const c of stillMissing()) if (bulbaNames[c.id]) out[c.id] = bulbaNames[c.id];
+
 // ---------- 2 + 3. own pictures: bake into cache/thumbs/ja ----------
 async function bake(c, bytes) {
   const file = path.join(THUMBS, safe(c.set.serie), safe(c.set.id), `${safe(c.localId)}.webp`);

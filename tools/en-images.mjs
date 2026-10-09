@@ -39,7 +39,9 @@ async function get(url) {
 const normNum = (n) => { const s = String(n ?? '').split('/')[0].trim(); return /^\d+$/.test(s) ? String(Number(s)) : s.toUpperCase(); };
 const alnum = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 // "Charizard ex - 199/165" / "Noivern (1/30)" → "charizardex" / "noivern"
-const productName = (p) => alnum(p.name.replace(/\s*[-–(]\s*[A-Za-z0-9]+\/\d+\)?\s*$/, '').replace(/\s*\(.*\)\s*$/, ''));
+const productName = (p) => alnum(p.name.replace(/\s*[-–(]\s*[A-Za-z0-9]+\/\d+\)?\s*$/, '').replace(/\s*\(.*\)\s*$/, '').replace(/\s*\[.*\]\s*$/, ''));
+// A bracket marks a variant print unless it is a kit disambiguator: "(#1)" or "(Sylveon)".
+const isVariant = (p) => /\(/.test(p.name) && !/\((#\d+|[A-Z][a-z]+)\)\s*$/.test(p.name);
 const day = (d) => Date.parse(String(d).slice(0, 10)) / 864e5;
 
 async function sync(ix) {
@@ -59,7 +61,11 @@ async function sync(ix) {
     const s = ix.sets[si];
     let cands = [], loose = false;
     const a = byAbbr.get(alnum(s.abbr));
+    const kit = s.name.match(/trainer kit \((.+?)\)/i);           // "XY trainer Kit (Noivern)"
+    const mcd = s.name.match(/mcdonald.*?(\d{4})/i);                // "McDonald's Collection 2021"
     if (a) cands = [a];
+    else if (kit) { cands = groups.filter((g) => /trainer kit/i.test(g.name) && alnum(g.name).includes(alnum(kit[1]))); loose = true; }
+    else if (mcd) { cands = groups.filter((g) => /mcdonald/i.test(g.name) && (g.name.includes(mcd[1]) || alnum(g.abbreviation) === `m${mcd[1].slice(2)}`)); loose = true; }
     else {
       const n = alnum(s.name);
       cands = groups.filter((g) => n.length >= 6 && alnum(g.name).includes(n));
@@ -72,15 +78,25 @@ async function sync(ix) {
       let products;
       try { products = await get(`${BASE}/${g.groupId}/products`); } catch (e) { console.log(`::warning::${e.message}`); continue; }
       const hits = [];
+      // Groups whose singles carry no number (My First Battle): match by name alone when unique.
+      const allCards = [...byNum.values()].flat();
+      const byName = new Map();
+      for (const c of allCards) (byName.get(c.name) ?? byName.set(c.name, []).get(c.name)).push(c);
       for (const p of products) {
+        if (!(p.imageCount > 0 || p.imageUrl)) continue;
         const num = (p.extendedData ?? []).find((e) => e.name === 'Number')?.value;
-        if (!num || !(p.imageCount > 0 || p.imageUrl)) continue;
-        const cs = byNum.get(normNum(num));
-        if (!cs) continue;
+        if (!num) {
+          const cs = byName.get(productName(p));
+          if (cs?.length === 1 && !/\(/.test(p.name)) hits.push([cs[0].id, p.productId, 1]);
+          continue;
+        }
         const pn = productName(p);
+        let cs = byNum.get(normNum(num));
+        // Numbers that don't line up (30th Classic Collection reprints keep their original numbers): by name.
+        if (!cs) { const byN = byName.get(pn); if (byN?.length === 1) { hits.push([byN[0].id, p.productId, isVariant(p) ? 0 : 1]); } continue; }
         // Several cards share a number (kits, sub-sets) or the set match was loose: the name must agree.
         const card = cs.length === 1 && !loose ? cs[0] : cs.find((c) => c.name === pn || (pn && (c.name.startsWith(pn) || pn.startsWith(c.name))));
-        if (card) hits.push([card.id, p.productId, /\(/.test(p.name) ? 0 : 1]);
+        if (card) hits.push([card.id, p.productId, isVariant(p) ? 0 : 1]);
       }
       if (hits.length > bestHits) { bestHits = hits.length; best = hits; }
     }
