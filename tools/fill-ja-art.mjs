@@ -16,6 +16,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { bulbaFetch } from './bulba.mjs'; // direct, or via the VPS proxy on GitHub runners
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-pipeline');
 const DIST = path.join(ROOT, 'dist');
@@ -33,7 +34,7 @@ const exists = (f) => fs.access(f).then(() => true, () => false);
 async function getJson(url, headers = UA, tries = 3) {
   for (let i = 1; ; i++) {
     try {
-      const r = await fetch(url, { headers });
+      const r = await bulbaFetch(url, { headers });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
@@ -46,7 +47,7 @@ async function getJson(url, headers = UA, tries = 3) {
 async function getBytes(url, headers = UA) {
   for (let i = 1; i <= 3; i++) {
     try {
-      const r = await fetch(url, { headers });
+      const r = await bulbaFetch(url, { headers });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return Buffer.from(await r.arrayBuffer());

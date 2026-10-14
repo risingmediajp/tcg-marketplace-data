@@ -12,6 +12,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { bulbaFetch } from './bulba.mjs'; // direct, or via the VPS proxy on GitHub runners
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-pipeline');
 const DIST = path.join(ROOT, 'dist');
@@ -30,7 +31,7 @@ async function api(params) {
   await sleep(250);
   for (let i = 1; i <= 3; i++) {
     try {
-      const r = await fetch(`${BULBA}?${new URLSearchParams({ ...params, format: 'json' })}`, { headers: UA });
+      const r = await bulbaFetch(`${BULBA}?${new URLSearchParams({ ...params, format: 'json' })}`, { headers: UA });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
     } catch (e) { if (i === 3) { console.log(`::warning::bulbapedia: ${e.message}`); return null; } await sleep(1500 * i); }
@@ -97,7 +98,7 @@ for (const lang of LANGS) {
     if (!hit) { failed++; continue; }
     await sleep(400);
     let bytes = null;
-    try { const r = await fetch(hit.url, { headers: UA }); if (r.ok) bytes = Buffer.from(await r.arrayBuffer()); } catch { /* skip */ }
+    try { const r = await bulbaFetch(hit.url, { headers: UA }); if (r.ok) bytes = Buffer.from(await r.arrayBuffer()); } catch { /* skip */ }
     if (!bytes) { failed++; continue; }
     try {
       await fs.writeFile(cached, await sharp(bytes).resize({ width: 240, height: 110, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer());

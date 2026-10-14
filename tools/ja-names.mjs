@@ -10,6 +10,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { bulbaFetch } from './bulba.mjs'; // direct, or via the VPS proxy on GitHub runners
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-pipeline');
 const DIST = path.join(ROOT, 'dist');
@@ -27,7 +28,7 @@ async function wikitext(titles) {
     try {
       // Japanese-only prints are redirects to the Western print's page ("Pikachu (Premium Champion Pack 36)"
       // → "Pikachu (XY 42)"), which carries the jname: follow redirects and map texts back to what was asked.
-      const r = await fetch(`${BULBA}?${new URLSearchParams({ action: 'query', prop: 'revisions', titles: titles.join('|'), rvprop: 'content', rvslots: 'main', redirects: 1, format: 'json' })}`, { headers: UA });
+      const r = await bulbaFetch(`${BULBA}?${new URLSearchParams({ action: 'query', prop: 'revisions', titles: titles.join('|'), rvprop: 'content', rvslots: 'main', redirects: 1, format: 'json' })}`, { headers: UA });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const q = (await r.json())?.query ?? {};
       const byTitle = Object.fromEntries(Object.values(q.pages ?? {}).map((p) => [p.title, p.revisions?.[0]?.slots?.main?.['*'] ?? null]));
@@ -55,7 +56,7 @@ async function bulbaSetName(s) {
   await sleep(250);
   let name = null;
   try {
-    const r = await fetch(`${BULBA}?${new URLSearchParams({ action: 'query', titles: `${s.en} (TCG)`, redirects: 1, format: 'json' })}`, { headers: UA });
+    const r = await bulbaFetch(`${BULBA}?${new URLSearchParams({ action: 'query', titles: `${s.en} (TCG)`, redirects: 1, format: 'json' })}`, { headers: UA });
     const j = await r.json();
     const target = j?.query?.redirects?.[0]?.to ?? Object.values(j?.query?.pages ?? {})[0]?.title;
     const missing = Object.values(j?.query?.pages ?? {})[0]?.missing !== undefined;
