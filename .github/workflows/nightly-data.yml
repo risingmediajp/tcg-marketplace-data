@@ -99,6 +99,7 @@ jobs:
           before=$(find data-pipeline/cache/thumbs -type f 2>/dev/null | wc -l)
           node tools/fill-ja-art.mjs
           node tools/ja-names.mjs
+          node tools/ja-official-names.mjs
           node tools/bake-card-thumbs.mjs
           after=$(find data-pipeline/cache/thumbs -type f | wc -l)
           echo "changed=$([ "$before" != "$after" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
