@@ -7,3 +7,4 @@ data-pipeline/cache/ptcg-db/
 data-pipeline/cache/official-ja.json
 tools/models/
 data-pipeline/cache/thumbs/
+data-pipeline/refresh-ja-names.log
