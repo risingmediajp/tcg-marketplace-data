@@ -1,12 +1,13 @@
-// TCGplayer product photos for English cards TCGdex has no image for (~1,600: Shiny Vaults, Trainer
-// Galleries, trainer kits, promos, Shining Legends…). Same source and etiquette as jp-prices.mjs
-// (tcgcsv.com, TCGplayer category 3 "Pokemon"), images only.
+// TCGplayer product, daily market prices and photo for EVERY English card (same source and etiquette
+// as jp-prices.mjs: tcgcsv.com, TCGplayer category 3 "Pokemon"). Prices are fresher than TCGdex's and
+// exist for cards TCGdex has none for (old promos); photos cover the ~1,600 cards TCGdex has no image
+// for (Shiny Vaults, Trainer Galleries, trainer kits, promos…).
 // Set matching: TCGdex's official abbreviation vs TCGplayer's (punctuation-insensitive), else the set's
 // name contained in the group's name, else release date within 3 days. Card matching: printed number,
 // and the product name must agree with the card name (both English) when a group has several candidates
 // or when the set was matched loosely.
-// Writes dist/tcgplayer-en.json: { updated, cards: { <enId>: [productId, null, 1] } } (same shape as
-// tcgplayer-ja.json). Cached in cache/tcgcsv-en.json (committed), reused while tcgcsv is unchanged.
+// Writes dist/tcgplayer-en.json: { updated, cards: { <enId>: [productId, { holofoil: 9.5, … } | null, hasImage 0|1] } }
+// (same shape as tcgplayer-ja.json). Cached in cache/tcgcsv-en.json (committed), reused while tcgcsv is unchanged.
 // Usage: node tools/en-images.mjs   (after build.mjs — needs dist/index-en.json)
 
 import fs from 'node:fs/promises';
@@ -19,7 +20,8 @@ const OUT = path.join(DIST, 'tcgplayer-en.json');
 const BASE = 'https://tcgcsv.com/tcgplayer/3';
 const UA = { 'User-Agent': 'TCGMarketplaceData/1.0 (+https://github.com/risingmediajp/tcg-marketplace-data)' };
 const CACHE_FILE = path.join(ROOT, 'cache', 'tcgcsv-en.json');
-const MIN_CARDS = 300;
+const MIN_CARDS = 5000;
+const KEY = { Holofoil: 'holofoil', Normal: 'normal', 'Reverse Holofoil': 'reverse-holofoil', '1st Edition Holofoil': '1st-edition-holofoil', '1st Edition': '1st-edition-normal', Unlimited: 'unlimited-normal', 'Unlimited Holofoil': 'unlimited-holofoil' };
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -53,7 +55,6 @@ const PROMO_GROUPS = {
 async function sync(ix) {
   const need = new Map(); // setIndex -> Map(num -> [card])
   for (const c of ix.cards) {
-    if (c[7]) continue;
     const [id, name, si, localId] = c;
     if (!need.has(si)) need.set(si, new Map());
     const k = normNum(localId);
@@ -83,15 +84,23 @@ async function sync(ix) {
     if (!cands.length) continue;
     let best = null, bestHits = 0;
     for (const g of cands.slice(0, 4)) {
-      let products;
-      try { products = await get(`${BASE}/${g.groupId}/products`); } catch (e) { console.log(`::warning::${e.message}`); continue; }
+      let products, prices;
+      try { products = await get(`${BASE}/${g.groupId}/products`); prices = await get(`${BASE}/${g.groupId}/prices`); } catch (e) { console.log(`::warning::${e.message}`); continue; }
+      const priceBy = new Map();
+      for (const p of prices) {
+        const v = p.marketPrice ?? p.midPrice;
+        if (!(v > 0) || !KEY[p.subTypeName]) continue;
+        if (!priceBy.has(p.productId)) priceBy.set(p.productId, {});
+        priceBy.get(p.productId)[KEY[p.subTypeName]] = v;
+      }
+      const hasImg = (p) => (p.imageCount > 0 || p.imageUrl ? 1 : 0);
+      const prodById = new Map(products.map((p) => [p.productId, p]));
       const hits = [];
       // Groups whose singles carry no number (My First Battle): match by name alone when unique.
       const allCards = [...byNum.values()].flat();
       const byName = new Map();
       for (const c of allCards) (byName.get(c.name) ?? byName.set(c.name, []).get(c.name)).push(c);
       for (const p of products) {
-        if (!(p.imageCount > 0 || p.imageUrl)) continue;
         const num = (p.extendedData ?? []).find((e) => e.name === 'Number')?.value;
         if (!num) {
           const cs = byName.get(productName(p));
@@ -110,19 +119,19 @@ async function sync(ix) {
       // the numbers don't line up (kits list "Pokémon Collector" once for both copies; variant letters).
       const taken = new Set(hits.map((h) => h[0]));
       const prodByName = new Map();
-      for (const p of products) if (p.imageCount > 0 || p.imageUrl) (prodByName.get(productName(p)) ?? prodByName.set(productName(p), []).get(productName(p))).push(p);
+      for (const p of products) (prodByName.get(productName(p)) ?? prodByName.set(productName(p), []).get(productName(p))).push(p);
       for (const c of allCards) {
         if (taken.has(c.id)) continue;
         const ps = prodByName.get(c.name);
         if (ps?.length === 1) hits.push([c.id, ps[0].productId, isVariant(ps[0]) ? 0 : 1]);
       }
-      if (hits.length > bestHits) { bestHits = hits.length; best = hits; }
+      if (hits.length > bestHits) { bestHits = hits.length; best = hits.map((h) => [...h, priceBy.get(h[1]) ?? null, hasImg(prodById.get(h[1]))]); }
     }
     if (!best || (loose && bestHits < Math.min(5, byNum.size) )) continue;
     matchedSets++;
-    for (const [id, pid, plain] of best) if (!out[id] || plain) out[id] = [pid, null, 1];
+    for (const [id, pid, plain, prices, img] of best) if (!out[id] || plain) out[id] = [pid, prices, img];
   }
-  log(`tcgplayer-en: ${matchedSets}/${need.size} image-less sets matched, ${Object.keys(out).length} cards pictured`);
+  log(`tcgplayer-en: ${matchedSets}/${need.size} sets matched, ${Object.keys(out).length} cards (${Object.values(out).filter((v) => v[1]).length} priced, ${Object.values(out).filter((v) => v[2]).length} pictured)`);
   return out;
 }
 
