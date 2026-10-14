@@ -67,13 +67,35 @@ function speciesFinder(en) {
   };
 }
 
+// Vintage Japanese sets (1996–2001) had no collector numbers. TCGdex numbers them arbitrarily and names
+// them by machine translation ("ビルからのメール" for Mail from Bill); TCGplayer carries every card with its
+// English name and a photo of the actual Japanese print, unnumbered. Such a set — TCGplayer products
+// unnumbered, TCGdex rows without pictures — is REBUILT from TCGplayer: numbered in product order, each
+// card linked to its English print by name in the paired Western set (VINTAGE_EN) so tools/ja-names.mjs
+// can read the official Japanese name from Bulbapedia and the scanner knows the twin artwork.
+const VINTAGE_EN = {
+  PMCG1: 'base1', PMCG2: 'base2', PMCG3: 'base3', PMCG4: 'base5', PMCG5: 'gym1', PMCG6: 'gym2',
+  neo1: 'neo1', neo2: 'neo2', neo3: 'neo3', neo4: 'neo4',
+  E1: 'ecard1', E2: 'ecard2', E3: 'ecard2', E4: 'ecard3', E5: 'ecard3', // e-series halves ↔ Expedition / Aquapolis / Skyridge
+  PCG3: 'ex7', PCG1: 'ex6', PCG2: 'ex6', PCG4: 'ex9', PCG5: 'ex10', PCG6: 'ex11', PCG8: 'ex12', PCG9: 'ex13',
+};
+const alnum = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
 async function sync(ix, en) {
   const findSpecies = speciesFinder(en);
   const cardsBySet = new Map(); // si -> Map(num -> id)
-  for (const [id, , si, localId] of ix.cards) {
+  const picturedBySet = new Map(); // si -> cards with a TCGdex image
+  for (const [id, , si, localId, , , , img] of ix.cards) {
     if (!cardsBySet.has(si)) cardsBySet.set(si, new Map());
     cardsBySet.get(si).set(normNum(localId), id);
+    if (img) picturedBySet.set(si, (picturedBySet.get(si) ?? 0) + 1);
   }
+  const enSetIdx = new Map(en.sets.map((s, i) => [s.id, i]));
+  const enByName = (setId) => {
+    const m = new Map();
+    for (const c of en.cards) if (c[2] === enSetIdx.get(setId)) (m.get(alnum(c[1])) ?? m.set(alnum(c[1]), []).get(alnum(c[1]))).push(c);
+    return m;
+  };
   const code = (a) => a.toLowerCase().replace(/\+$/, 'p');
   const all = await get(`${BASE}/groups`);
   const byCode = new Map(all.filter((g) => g.abbreviation).map((g) => [code(g.abbreviation), g]));
@@ -86,12 +108,14 @@ async function sync(ix, en) {
     const g = byCode.get(s.id.toLowerCase());
     if (g) { plan.push({ si, cands: [g], empty }); return; }
     if (!s.date) return;
-    const cands = all.filter((x) => Math.abs(day(x.publishedOn) - day(s.date)) <= 2 && !ix.sets.some((o) => o !== s && code(x.abbreviation ?? '') === o.id.toLowerCase()));
+    // Within 2 days of TCGdex's date; failing that, within 45 days (TCGdex and TCGplayer disagree on a few
+    // vintage release dates — the card-count guard keeps a wrong set out).
+    const cands = all.filter((x) => Math.abs(day(x.publishedOn) - day(s.date)) <= 45 && !ix.sets.some((o) => o !== s && code(x.abbreviation ?? '') === o.id.toLowerCase()));
     if (cands.length) plan.push({ si, cands, byDate: true, empty });
   });
   log(`tcgplayer-ja: ${plan.length} of ${ix.sets.length} Japanese sets have TCGplayer candidates`);
 
-  const out = {}, enNames = {}, synth = {};
+  const out = {}, enNames = {}, synth = {}, enMatches = {};
   const fetched = new Map();
   const load = async (g) => {
     if (!fetched.has(g.groupId)) fetched.set(g.groupId, { products: await get(`${BASE}/${g.groupId}/products`), prices: await get(`${BASE}/${g.groupId}/prices`) });
@@ -100,28 +124,32 @@ async function sync(ix, en) {
   for (const { si, cands, byDate, empty } of plan) {
     const s = ix.sets[si];
     let byNum = cardsBySet.get(si) ?? new Map();
-    let products, prices, group;
+    // A set whose TCGdex rows have no pictures and whose TCGplayer products are unnumbered gets REBUILT.
+    const unpictured = !empty && (picturedBySet.get(si) ?? 0) < byNum.size * 0.1;
+    let products, prices, group, mode = null;
     try {
+      // Per candidate: numbered products against a set with cards → match by card numbers; otherwise
+      // (empty set, or unnumbered vintage products) → by card count against TCGdex's total, twins
+      // released together (XY1a/XY1b ↔ Collection X/Y) paired by order (TCGdex "a" ↔ lower group id).
       let bestHits = -1, bestGap = Infinity;
-      // Empty sets can't be matched by card numbers: take the candidate whose card count is closest to
-      // the set's official count (a deck kit released the same day loses to the real set); twin halves
-      // with equal counts (XY1a/XY1b ↔ Collection X/Y) are paired by order, TCGdex "a" ↔ lower group id.
-      const ordered = empty ? [...cands].sort((a, b) => a.groupId - b.groupId) : cands;
-      const twinK = empty ? ix.sets.filter((o) => o.date === s.date && !cardsBySet.get(ix.sets.indexOf(o))?.size).sort((a, b) => a.id.localeCompare(b.id)).indexOf(s) : 0;
+      const ordered = [...cands].sort((a, b) => a.groupId - b.groupId);
+      const twinK = ix.sets.filter((o) => o.date === s.date && !cardsBySet.get(ix.sets.indexOf(o))?.size).sort((a, b) => a.id.localeCompare(b.id)).indexOf(s);
+      const target = s.total || s.official || 0;
       for (const [k, g] of ordered.entries()) {
         const d = await load(g);
+        const count = d.products.length;
         const numbered = d.products.filter((p) => productNum(p)).length;
-        if (empty) {
-          // Count gap in steps of 10 (a 33-card deck kit vs an 80-card set), then order for twins.
-          const gap = Math.floor(Math.abs(numbered - (s.official || s.total || numbered)) / 10) + (k === twinK ? 0 : 0.5);
-          if (numbered >= 5 && gap < bestGap) { bestGap = gap; bestHits = numbered; ({ products, prices } = d); group = g; }
-        } else {
+        if (!empty && numbered >= count * 0.5) {
           const hits = d.products.filter((p) => byNum.has(normNum(productNum(p)))).length;
-          if (hits > bestHits) { bestHits = hits; ({ products, prices } = d); group = g; }
+          if (hits > bestHits && (mode !== 'count' || hits >= byNum.size * 0.3)) { bestHits = hits; mode = 'num'; ({ products, prices } = d); group = g; }
+        } else if (mode !== 'num') {
+          const gap = Math.floor(Math.abs(count - (target || count)) / 10) + (k === twinK ? 0 : 0.5);
+          const close = !target || Math.abs(count - target) <= Math.max(15, target * 0.4);
+          if (count >= 5 && close && gap < bestGap) { bestGap = gap; bestHits = count; mode = 'count'; ({ products, prices } = d); group = g; }
         }
       }
-      if (byDate && !empty && bestHits < byNum.size * 0.3) continue;
-      if (empty && bestHits < 5) continue;
+      if (!mode) continue;
+      if (mode === 'num' && byDate && bestHits < byNum.size * 0.3) continue;
     } catch (e) { console.log(`::warning::${e.message}`); continue; }
     enNames[s.id] = groupEnName(group);
     const priceBy = new Map();
@@ -134,6 +162,28 @@ async function sync(ix, en) {
     // One product per printed number. Preference: plain card over pattern/stamp variants
     // ("… (Master Ball Pattern)"), then priced, then pictured.
     const score = (p) => (!/\(/.test(p.name) ? 4 : 0) + (priceBy.has(p.productId) ? 2 : 0) + (p.imageCount > 0 || p.imageUrl ? 1 : 0);
+    const rebuild = mode === 'count' && !empty && unpictured;
+    if (rebuild) {
+      // Replace TCGdex's rows: product order, numbered 001…, English names, linked to the English print.
+      const pool = VINTAGE_EN[s.id] ? enByName(VINTAGE_EN[s.id]) : null;
+      const rows = [];
+      let n = 0;
+      byNum = new Map();
+      for (const p of products.filter((p) => !/\(/.test(p.name) || !products.some((q) => q !== p && cardName(q) === cardName(p)))) {
+        const name = cardName(p);
+        const localId = String(++n).padStart(3, '0');
+        const id = `${s.id}-${localId}`;
+        const pr = priceBy.get(p.productId) ?? {};
+        const vb = (pr['reverse-holofoil'] ? 2 : 0) | (pr.holofoil ? 4 : 0) | (pr.normal || !pr.holofoil ? 1 : 0);
+        rows.push([id, name, localId, findSpecies(name), productRarity(p), vb]);
+        byNum.set(normNum(localId), id);
+        const twins = pool?.get(alnum(name));
+        if (twins?.length === 1 && twins[0][7]) enMatches[id] = twins[0][0];
+        out[id] = [p.productId, priceBy.get(p.productId) ?? null, p.imageCount > 0 || p.imageUrl ? 1 : 0];
+      }
+      synth[s.id] = rows;
+      continue;
+    }
     if (empty) {
       // Build the set's cards from the products (English names for now).
       const bestByNum = new Map();
@@ -167,7 +217,7 @@ async function sync(ix, en) {
       if (priceBy.has(p.productId) || img) out[id] = [p.productId, priceBy.get(p.productId) ?? null, img];
     }
   }
-  return { cards: out, enNames, synth };
+  return { cards: out, enNames, synth, enMatches };
 }
 
 // Apply a sync's filled sets + English names to the index, then drop sets that still have no cards.
@@ -178,7 +228,8 @@ function applyToIndex(ix, { enNames, synth }) {
   let added = 0;
   ix.sets.forEach((s, si) => {
     if (enNames[s.id]) s.en = enNames[s.id];
-    if (count.get(si) || !synth[s.id]) return;
+    if (!synth[s.id]) return;
+    if (count.get(si)) ix.cards = ix.cards.filter((c) => c[2] !== si); // rebuilt set: TCGdex rows out
     for (const [id, name, localId, dex, rarity, vb] of synth[s.id]) {
       ix.cards.push([id, name, si, localId, dex, rarityIdx(rarity), vb, 0]);
       added++;
@@ -220,6 +271,16 @@ if (prevOk && prev.lastUpdated === lastUpdated) {
 }
 if (result) {
   const { added, dropped } = applyToIndex(ix, result);
+  // English-print links for rebuilt vintage sets → the art/name tools' match table.
+  if (result.enMatches && Object.keys(result.enMatches).length) {
+    const mf = path.join(ROOT, 'cache', 'ja-art', 'matches.json');
+    const m = JSON.parse(await fs.readFile(mf, 'utf8').catch(() => '{}'));
+    const rebuiltSets = new Set(Object.keys(result.synth));
+    for (const k of Object.keys(m)) if (rebuiltSets.has(k.replace(/-[^-]+$/, '')) && !result.enMatches[k]) delete m[k]; // stale TCGdex ids
+    Object.assign(m, result.enMatches);
+    await fs.mkdir(path.dirname(mf), { recursive: true });
+    await fs.writeFile(mf, JSON.stringify(m));
+  }
   await fs.writeFile(IX_FILE, JSON.stringify(ix));
   await fs.writeFile(OUT, JSON.stringify({ updated: result.updated, cards: result.cards }));
   log(`index-ja: +${added} cards in filled sets, ${dropped} empty sets dropped → ${ix.sets.length} sets, ${ix.cards.length} cards`);

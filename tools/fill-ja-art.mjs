@@ -287,7 +287,8 @@ const enThumb = async (eid) => {
 }
 
 await writeJson(path.join(CACHE, 'matches.json'), out);
-const cards = Object.fromEntries(Object.entries(out).filter(([id]) => missing.some((c) => c.id === id) || out[id] === 1 || out[id] === 2));
+const inIndex = new Set(ja.cards.map((c) => c[0])); // rebuilt sets change ids: drop stale entries
+const cards = Object.fromEntries(Object.entries(out).filter(([id]) => inIndex.has(id) && (missing.some((c) => c.id === id) || out[id] === 1 || out[id] === 2)));
 const unverified = Object.fromEntries(Object.entries(ambiguous).filter(([id]) => cards[id] === 2));
 await writeJson(path.join(DIST, 'ja-art.json'), { v: 2, cards, unverified });
 if (await exists(THUMBS)) await fs.cp(THUMBS, path.join(DIST, 'thumbs', 'ja'), { recursive: true });
