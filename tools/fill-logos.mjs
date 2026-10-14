@@ -39,11 +39,13 @@ async function api(params) {
 
 // Bulbapedia set page for a Japanese set code → logo image URL (or null). Guard against a wrong search
 // hit: the page must be a "(TCG)" page whose text mentions the code as a whole word.
-async function bulbaLogo(code, name) {
+// enName: the set's English name from TCGplayer (Japanese sets), whose Bulbapedia page carries the
+// Japanese logo — the code search lands on the Western set page ("Astral Radiance") instead.
+async function bulbaLogo(code, name, enName) {
   const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`(^|[^A-Za-z0-9])${esc(code)}([^A-Za-z0-9]|$)`, 'i');
   // Candidates: the page named after the set, then pages the code or the set's name turns up.
-  const titles = [`${name} (TCG)`];
+  const titles = [...(enName ? [`${enName} (TCG)`] : []), `${name} (TCG)`];
   for (const q of [`"${code}" TCG`, `"${name}" TCG`]) {
     const s = await api({ action: 'query', list: 'search', srsearch: q, srlimit: 5, srwhat: 'text' });
     for (const t of (s?.query?.search ?? []).map((x) => x.title)) if (/\(TCG\)$/.test(t) && !titles.includes(t)) titles.push(t);
@@ -56,7 +58,8 @@ async function bulbaLogo(code, name) {
     if (!re.test(text) && !nameRe.test(text)) continue; // page must mention the set's code or name
     const imgs = (page.images ?? []).map((i) => i.title).filter((t) => /logo/i.test(t) && !/Project TCG/i.test(t));
     // Prefer a file naming this code, then a Japanese-marked one, then any logo on the page.
-    const pick = imgs.find((t) => re.test(t)) ?? imgs.find((t) => /\bJP\b/i.test(t)) ?? imgs[0];
+    // Never an English-marked logo for a Japanese set (the Western set page lists only "SWSH10 Logo EN.png").
+    const pick = imgs.find((t) => re.test(t)) ?? imgs.find((t) => /\bJP\b/i.test(t)) ?? imgs.find((t) => !/\bEN\b/i.test(t));
     if (!pick) continue;
     const info = await api({ action: 'query', titles: pick, prop: 'imageinfo', iiprop: 'url' });
     const url = Object.values(info?.query?.pages ?? {})[0]?.imageinfo?.[0]?.url;
@@ -88,7 +91,7 @@ for (const lang of LANGS) {
     if (!(lang === 'ja' || lang === 'en')) continue;
     if (lookup[`${lang}:${s.id}`] === null && !process.env.RETRY_LOGOS) continue; // searched before, nothing there
     if (lookup[`${lang}:${s.id}`] === null) delete lookup[`${lang}:${s.id}`];
-    const hit = lookup[`${lang}:${s.id}`] ?? await bulbaLogo(s.id, s.name);
+    const hit = lookup[`${lang}:${s.id}`] ?? await bulbaLogo(s.id, s.name, s.en);
     lookup[`${lang}:${s.id}`] = hit;
     await fs.writeFile(LOOKUP, JSON.stringify(lookup, null, 1));
     if (!hit) { failed++; continue; }

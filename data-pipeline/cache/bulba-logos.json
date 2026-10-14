@@ -94,11 +94,7 @@
   "file": "File:CP5 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/5/5a/CP5_Logo.png"
  },
- "ja:CP6": {
-  "page": "Evolutions (TCG)",
-  "file": "File:XY12 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/9/91/XY12_Logo_EN.png"
- },
+ "ja:CP6": null,
  "ja:SM2L": {
   "page": "Guardians Rising (TCG)",
   "file": "File:SM2 Logo.png",
@@ -119,16 +115,8 @@
   "file": "File:SM3 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/4/45/SM3_Logo.png"
  },
- "ja:SM4S": {
-  "page": "Crimson Invasion (TCG)",
-  "file": "File:SM4 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/5/5e/SM4_Logo_EN.png"
- },
- "ja:SM4A": {
-  "page": "Crimson Invasion (TCG)",
-  "file": "File:SM4 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/5/5e/SM4_Logo_EN.png"
- },
+ "ja:SM4S": null,
+ "ja:SM4A": null,
  "ja:SM5S": {
   "page": "Ultra Prism (TCG)",
   "file": "File:SM5 Logo.png",
@@ -229,16 +217,8 @@
   "file": "File:SM12a Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/4/44/SM12a_Logo.png"
  },
- "ja:S1W": {
-  "page": "Sword & Shield (TCG)",
-  "file": "File:SWSH1 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/5/50/SWSH1_Logo_EN.png"
- },
- "ja:S1H": {
-  "page": "Sword & Shield (TCG)",
-  "file": "File:SWSH1 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/5/50/SWSH1_Logo_EN.png"
- },
+ "ja:S1W": null,
+ "ja:S1H": null,
  "ja:S1a": {
   "page": "VMAX Rising (TCG)",
   "file": "File:S1a Logo.png",
@@ -259,51 +239,23 @@
   "file": "File:S4a Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/1/10/S4a_Logo.png"
  },
- "ja:S5I": {
-  "page": "Battle Styles (TCG)",
-  "file": "File:SWSH5 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/b/b3/SWSH5_Logo_EN.png"
- },
- "ja:S5R": {
-  "page": "Battle Styles (TCG)",
-  "file": "File:SWSH5 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/b/b3/SWSH5_Logo_EN.png"
- },
+ "ja:S5I": null,
+ "ja:S5R": null,
  "ja:S5a": {
   "page": "Peerless Fighters (TCG)",
   "file": "File:S5a Peerless Fighters Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/5/50/S5a_Peerless_Fighters_Logo.png"
  },
- "ja:S6K": {
-  "page": "Chilling Reign (TCG)",
-  "file": "File:SWSH6 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/01/SWSH6_Logo_EN.png"
- },
- "ja:S6H": {
-  "page": "Chilling Reign (TCG)",
-  "file": "File:SWSH6 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/01/SWSH6_Logo_EN.png"
- },
+ "ja:S6K": null,
+ "ja:S6H": null,
  "ja:S6a": {
   "page": "Eevee Heroes (TCG)",
   "file": "File:S6a Eevee Heroes Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/1/1f/S6a_Eevee_Heroes_Logo.png"
  },
- "ja:S7R": {
-  "page": "Evolving Skies (TCG)",
-  "file": "File:SWSH7 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/a/ac/SWSH7_Logo_EN.png"
- },
- "ja:S7D": {
-  "page": "Evolving Skies (TCG)",
-  "file": "File:SWSH7 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/a/ac/SWSH7_Logo_EN.png"
- },
- "ja:S8a": {
-  "page": "Celebrations (TCG)",
-  "file": "File:Celebrations Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/3/32/Celebrations_Logo_EN.png"
- },
+ "ja:S7R": null,
+ "ja:S7D": null,
+ "ja:S8a": null,
  "ja:S8b": {
   "page": "VMAX Climax (TCG)",
   "file": "File:S8b VMAX Climax Logo.png",
@@ -314,16 +266,8 @@
   "file": "File:S9a Battle Region Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/c/cb/S9a_Battle_Region_Logo.png"
  },
- "ja:S10D": {
-  "page": "Astral Radiance (TCG)",
-  "file": "File:SWSH10 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/e/e0/SWSH10_Logo_EN.png"
- },
- "ja:S10P": {
-  "page": "Astral Radiance (TCG)",
-  "file": "File:SWSH10 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/e/e0/SWSH10_Logo_EN.png"
- },
+ "ja:S10D": null,
+ "ja:S10P": null,
  "ja:S10a": {
   "page": "Dark Phantasma (TCG)",
   "file": "File:S10a Dark Phantasma Logo.png",
@@ -339,11 +283,7 @@
   "file": "File:Team Flare TCG logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/b/bd/Team_Flare_TCG_logo.png"
  },
- "ja:S12a": {
-  "page": "Crown Zenith (TCG)",
-  "file": "File:Crown Zenith Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/9/9a/Crown_Zenith_Logo_EN.png"
- },
+ "ja:S12a": null,
  "ja:SV1V": {
   "page": "Scarlet & Violet (TCG)",
   "file": "File:SV1V Logo JP.png",
@@ -374,11 +314,7 @@
   "file": "File:SV2a Pokémon Card 151 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/1/12/SV2a_Pok%C3%A9mon_Card_151_Logo.png"
  },
- "ja:SV3": {
-  "page": "Obsidian Flames (TCG)",
-  "file": "File:SV3 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/b/bd/SV3_Logo_EN.png"
- },
+ "ja:SV3": null,
  "ja:SV3a": {
   "page": "Raging Surf (TCG)",
   "file": "File:SV3a Raging Surf Logo.png",
@@ -414,36 +350,20 @@
   "file": "File:SV5a Crimson Haze Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/9/96/SV5a_Crimson_Haze_Logo.png"
  },
- "ja:SV6": {
-  "page": "Twilight Masquerade (TCG)",
-  "file": "File:SV6 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/1/15/SV6_Logo_EN.png"
- },
+ "ja:SV6": null,
  "ja:SV6a": {
   "page": "Shrouded Fable (TCG)",
   "file": "File:SV6a Night Wanderer Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/5/5e/SV6a_Night_Wanderer_Logo.png"
  },
- "ja:SV7": {
-  "page": "Stellar Crown (TCG)",
-  "file": "File:SV7 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/8/8d/SV7_Logo_EN.png"
- },
- "ja:SV8": {
-  "page": "Hidden Fates (TCG)",
-  "file": "File:Hidden Fates Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/d/d6/Hidden_Fates_Logo_EN.png"
- },
+ "ja:SV7": null,
+ "ja:SV8": null,
  "ja:SV8a": {
   "page": "Terastal Fest ex (TCG)",
   "file": "File:SV8a Terastal Fest ex Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/9/9c/SV8a_Terastal_Fest_ex_Logo.png"
  },
- "ja:SV9": {
-  "page": "Hidden Fates (TCG)",
-  "file": "File:Hidden Fates Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/d/d6/Hidden_Fates_Logo_EN.png"
- },
+ "ja:SV9": null,
  "ja:M-P": {
   "page": "Basic Fighting Energy (TCG)",
   "file": "File:Team Flare TCG logo.png",
@@ -464,60 +384,31 @@
   "file": "File:M2a Logo JP.png",
   "url": "https://archives.bulbagarden.net/media/upload/2/28/M2a_Logo_JP.png"
  },
- "en:miscp": null,
- "en:jumbo": null,
- "en:sp": null,
  "en:ecard1": {
   "page": "Expedition Base Set (TCG)",
   "file": "File:E1 Logo EN.png",
   "url": "https://archives.bulbagarden.net/media/upload/e/ed/E1_Logo_EN.png"
  },
- "en:tk-ex-latia": null,
- "en:tk-ex-latio": null,
  "en:ex5.5": {
   "page": "Poké Card Creator Pack (TCG)",
   "file": "File:Kids WB logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/c/cb/Kids_WB_logo.png"
  },
- "en:exu": null,
- "en:tk-ex-m": null,
- "en:tk-ex-p": null,
- "en:tk-dp-l": null,
- "en:tk-dp-m": null,
- "en:tk-hs-r": null,
- "en:tk-hs-g": null,
  "en:2011bw": {
   "page": "Promotional cards (TCG)",
   "file": "File:Kids WB logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/c/cb/Kids_WB_logo.png"
  },
- "en:tk-bw-e": null,
- "en:tk-bw-z": null,
- "en:2012bw": null,
  "en:xya": {
   "page": "Ultra Prism (TCG)",
   "file": "File:SM5 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/8/81/SM5_Logo.png"
  },
- "en:tk-xy-n": null,
- "en:tk-xy-sy": null,
- "en:2014xy": null,
- "en:tk-xy-b": null,
- "en:tk-xy-w": null,
- "en:tk-xy-latio": null,
- "en:tk-xy-latia": null,
- "en:2015xy": null,
- "en:tk-xy-p": null,
- "en:tk-xy-su": null,
  "en:xy10": {
   "page": "Fates Collide (TCG)",
   "file": "File:XY10 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/8/8b/XY10_Logo.png"
  },
- "en:2016xy": null,
- "en:tk-sm-r": null,
- "en:tk-sm-l": null,
- "en:2017sm": null,
  "en:sm3.5": {
   "page": "Shining Legends (TCG)",
   "file": "File:SM3Plus Logo.png",
@@ -528,28 +419,16 @@
   "file": "File:Dragon Majesty Logo EN.png",
   "url": "https://archives.bulbagarden.net/media/upload/0/04/Dragon_Majesty_Logo_EN.png"
  },
- "en:2018sm": null,
- "en:sma": null,
- "en:2019sm": null,
- "en:2021swsh": null,
- "en:swsh4.5sv": null,
- "en:cel25cc": null,
- "en:swsh9tg": null,
- "en:swsh10tg": null,
  "en:2022swsh": {
   "page": "McDonald's Collection 2022 (TCG)",
   "file": "File:Match Battle logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/6/6a/Match_Battle_logo.png"
  },
- "en:swsh11tg": null,
- "en:swsh12tg": null,
- "en:swsh12.5gg": null,
  "en:sv01": {
   "page": "Scarlet & Violet (TCG)",
   "file": "File:SV1S Logo JP.png",
   "url": "https://archives.bulbagarden.net/media/upload/f/fb/SV1S_Logo_JP.png"
  },
- "en:svp": null,
  "en:2023sv": {
   "page": "McDonald's Collection 2023 (TCG)",
   "file": "File:Match Battle logo.png",
@@ -580,7 +459,6 @@
   "file": "File:30th Celebration Logo EN.png",
   "url": "https://archives.bulbagarden.net/media/upload/d/d9/30th_Celebration_Logo_EN.png"
  },
- "en:30th-c": null,
  "ja:PMCG1": {
   "page": "Base Set (TCG)",
   "file": "File:Pokémon TCG logo old.png",
@@ -611,16 +489,8 @@
   "file": "File:Gym Challenge Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/e/e0/Gym_Challenge_Logo.png"
  },
- "ja:neo1": {
-  "page": "Neo Genesis (TCG)",
-  "file": "File:Neo Genesis Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/5/55/Neo_Genesis_Logo_EN.png"
- },
- "ja:neo2": {
-  "page": "Neo Discovery (TCG)",
-  "file": "File:Neo Discovery Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/9/98/Neo_Discovery_Logo_EN.png"
- },
+ "ja:neo1": null,
+ "ja:neo2": null,
  "ja:neo3": {
   "page": "Neo Revelation (TCG)",
   "file": "File:Neo3 Logo.png",
@@ -641,107 +511,30 @@
   "file": "File:Pokémon Card web Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/4/44/Pok%C3%A9mon_Card_web_Logo.png"
  },
- "ja:E1": {
-  "page": "Expedition Base Set (TCG)",
-  "file": "File:E1 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/e/ed/E1_Logo_EN.png"
- },
- "ja:E2": {
-  "page": "Aquapolis (TCG)",
-  "file": "File:E2 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/0d/E2_Logo_EN.png"
- },
- "ja:E4": {
-  "page": "Skyridge (TCG)",
-  "file": "File:E3 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/b/b8/E3_Logo_EN.png"
- },
- "ja:E5": {
-  "page": "Skyridge (TCG)",
-  "file": "File:E3 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/b/b8/E3_Logo_EN.png"
- },
+ "ja:E1": null,
+ "ja:E2": null,
+ "ja:E4": null,
+ "ja:E5": null,
  "ja:ADV1": {
   "page": "Base Set (TCG)",
   "file": "File:Pokémon TCG logo old.png",
   "url": "https://archives.bulbagarden.net/media/upload/0/05/Pok%C3%A9mon_TCG_logo_old.png"
  },
- "ja:ADV2": {
-  "page": "EX Sandstorm (TCG)",
-  "file": "File:EX2 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/6/65/EX2_Logo_EN.png"
- },
- "ja:ADV3": {
-  "page": "EX Dragon (TCG)",
-  "file": "File:EX3 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/2/24/EX3_Logo_EN.png"
- },
- "ja:ADV4": null,
- "ja:ADV5": {
-  "page": "EX Hidden Legends (TCG)",
-  "file": "File:EX5 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/02/EX5_Logo_EN.png"
- },
- "ja:PCG1": {
-  "page": "EX FireRed & LeafGreen (TCG)",
-  "file": "File:EX6 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/a/a4/EX6_Logo_EN.png"
- },
- "ja:PCG2": {
-  "page": "EX Deoxys (TCG)",
-  "file": "File:EX8 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/2/2b/EX8_Logo_EN.png"
- },
- "ja:PCG3": {
-  "page": "EX Team Rocket Returns (TCG)",
-  "file": "File:EX7 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/9/94/EX7_Logo_EN.png"
- },
- "ja:PCG4": {
-  "page": "EX Unseen Forces (TCG)",
-  "file": "File:EX10 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/3/31/EX10_Logo_EN.png"
- },
- "ja:PCG5": {
-  "page": "EX Legend Maker (TCG)",
-  "file": "File:EX12 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/c/c6/EX12_Logo_EN.png"
- },
- "ja:PCG6": {
-  "page": "EX Delta Species (TCG)",
-  "file": "File:EX11 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/7/7d/EX11_Logo_EN.png"
- },
- "ja:PCG7": {
-  "page": "EX Holon Phantoms (TCG)",
-  "file": "File:EX13 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/4/45/EX13_Logo_EN.png"
- },
- "ja:PCG8": {
-  "page": "EX Crystal Guardians (TCG)",
-  "file": "File:EX14 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/1/14/EX14_Logo_EN.png"
- },
- "ja:PCG9": {
-  "page": "EX Dragon Frontiers (TCG)",
-  "file": "File:EX15 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/d/d4/EX15_Logo_EN.png"
- },
- "ja:PCG10": {
-  "page": "EX Power Keepers (TCG)",
-  "file": "File:EX16 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/e/eb/EX16_Logo_EN.png"
- },
- "ja:L1a": {
-  "page": "HeartGold & SoulSilver (TCG)",
-  "file": "File:HS1 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/02/HS1_Logo_EN.png"
- },
- "ja:L1b": {
-  "page": "HeartGold & SoulSilver (TCG)",
-  "file": "File:HS1 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/02/HS1_Logo_EN.png"
- },
+ "ja:ADV2": null,
+ "ja:ADV3": null,
+ "ja:ADV5": null,
+ "ja:PCG1": null,
+ "ja:PCG2": null,
+ "ja:PCG3": null,
+ "ja:PCG4": null,
+ "ja:PCG5": null,
+ "ja:PCG6": null,
+ "ja:PCG7": null,
+ "ja:PCG8": null,
+ "ja:PCG9": null,
+ "ja:PCG10": null,
+ "ja:L1a": null,
+ "ja:L1b": null,
  "ja:LL": {
   "page": "Lost Link (TCG)",
   "file": "File:Lost Link Logo.png",
@@ -853,13 +646,11 @@
   "file": "File:SM5Plus Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/f/f9/SM5Plus_Logo.png"
  },
- "ja:SM10": null,
  "ja:SM11": {
   "page": "Unified Minds (TCG)",
   "file": "File:SM11 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/2/26/SM11_Logo.png"
  },
- "ja:SM12": null,
  "ja:S2": {
   "page": "Rebel Clash (TCG)",
   "file": "File:S2 Logo.png",
@@ -870,28 +661,14 @@
   "file": "File:S3 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/d/d9/S3_Logo.png"
  },
- "ja:S4": null,
  "ja:S8": {
   "page": "Fusion Strike (TCG)",
   "file": "File:S8 Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/d/da/S8_Logo.png"
  },
- "ja:S9": {
-  "page": "Brilliant Stars (TCG)",
-  "file": "File:SWSH9 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/1/1e/SWSH9_Logo_EN.png"
- },
- "ja:S11": {
-  "page": "Lost Origin (TCG)",
-  "file": "File:SWSH11 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/4/4d/SWSH11_Logo_EN.png"
- },
- "ja:S11a": null,
- "ja:S12": {
-  "page": "Silver Tempest (TCG)",
-  "file": "File:SWSH12 Logo EN.png",
-  "url": "https://archives.bulbagarden.net/media/upload/0/03/SWSH12_Logo_EN.png"
- },
+ "ja:S9": null,
+ "ja:S11": null,
+ "ja:S12": null,
  "ja:CS2b": {
   "page": "Triplet Beat (TCG)",
   "file": "File:SV1a Triplet Beat Logo.png",
@@ -967,12 +744,6 @@
   "file": "File:SV1a Triplet Beat Logo.png",
   "url": "https://archives.bulbagarden.net/media/upload/7/70/SV1a_Triplet_Beat_Logo.png"
  },
- "ja:SVK": null,
- "ja:SVLN": null,
- "ja:SVLS": null,
- "ja:SV7a": null,
- "ja:SV9a": null,
- "ja:SV10": null,
  "ja:SV11B": {
   "page": "Black Bolt/White Flare (TCG)",
   "file": "File:SV11B Logo JP.png",
@@ -988,7 +759,6 @@
   "file": "File:M2 Logo JP.png",
   "url": "https://archives.bulbagarden.net/media/upload/c/c7/M2_Logo_JP.png"
  },
- "ja:MC": null,
  "ja:M3": {
   "page": "Nihil Zero (TCG)",
   "file": "File:M3 Logo JP.png",
@@ -1008,5 +778,59 @@
   "page": "Storm Emeralda (TCG)",
   "file": "File:M6 Logo JP.png",
   "url": "https://archives.bulbagarden.net/media/upload/1/10/M6_Logo_JP.png"
- }
+ },
+ "en:miscp": null,
+ "en:jumbo": null,
+ "en:sp": null,
+ "en:tk-ex-latia": null,
+ "en:tk-ex-latio": null,
+ "en:exu": null,
+ "en:tk-ex-m": null,
+ "en:tk-ex-p": null,
+ "en:tk-dp-l": null,
+ "en:tk-dp-m": null,
+ "en:tk-hs-r": null,
+ "en:tk-hs-g": null,
+ "en:tk-bw-e": null,
+ "en:tk-bw-z": null,
+ "en:2012bw": null,
+ "en:tk-xy-n": null,
+ "en:tk-xy-sy": null,
+ "en:2014xy": null,
+ "en:tk-xy-b": null,
+ "en:tk-xy-w": null,
+ "en:tk-xy-latio": null,
+ "en:tk-xy-latia": null,
+ "en:2015xy": null,
+ "en:tk-xy-p": null,
+ "en:tk-xy-su": null,
+ "en:2016xy": null,
+ "en:tk-sm-r": null,
+ "en:tk-sm-l": null,
+ "en:2017sm": null,
+ "en:2018sm": null,
+ "en:sma": null,
+ "en:2019sm": null,
+ "en:2021swsh": null,
+ "en:swsh4.5sv": null,
+ "en:cel25cc": null,
+ "en:swsh9tg": null,
+ "en:swsh10tg": null,
+ "en:swsh11tg": null,
+ "en:swsh12tg": null,
+ "en:swsh12.5gg": null,
+ "en:svp": null,
+ "en:30th-c": null,
+ "ja:ADV4": null,
+ "ja:SM10": null,
+ "ja:SM12": null,
+ "ja:S4": null,
+ "ja:S11a": null,
+ "ja:SVK": null,
+ "ja:SVLN": null,
+ "ja:SVLS": null,
+ "ja:SV7a": null,
+ "ja:SV9a": null,
+ "ja:SV10": null,
+ "ja:MC": null
 }

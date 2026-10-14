@@ -1,16 +1,19 @@
-// TCGplayer prices AND card pictures for Japanese cards. TCGdex only has Cardmarket (EUR) for Japanese
-// cards and no Japanese images since 2025, but TCGplayer sells them in its "Pokemon Japan" line
-// (category 85) with a photo of each actual card. tcgcsv.com publishes TCGplayer's catalogue and prices
-// daily as static JSON; its set abbreviations match TCGdex's Japanese set ids (M4, M2a, SV5a…), and
-// products carry the printed number, so cards match exactly by set + number.
-// Writes dist/tcgplayer-ja.json:
-//   { updated, cards: { <jaCardId>: [productId, { holofoil: 13.43, … } | null, hasImage 0|1] } }
-// The app uses it for a Japanese card's USD prices, its exact TCGplayer product link, and its picture
-// (tcgplayer-cdn.tcgplayer.com/product/<productId>_in_400x400.jpg — hot-linked, never copied).
+// TCGplayer data for Japanese cards — and the Japanese sets TCGdex lists without any cards.
+// TCGdex only has Cardmarket (EUR) for Japanese cards, no Japanese images since 2025, and 68 Japanese
+// sets (ADV, LEGEND, XY, S-era halves…) with set headers but zero cards (tester audit 2026-10-13).
+// TCGplayer sells all of it in its "Pokemon Japan" line (category 85): tcgcsv.com publishes that
+// catalogue and prices daily as static JSON. Set codes mostly match TCGdex's (M4, SV5a…); older sets and
+// twin halves are matched by release date.
+// What this writes:
+//   dist/tcgplayer-ja.json  { updated, cards: { <jaCardId>: [productId, { holofoil: 13.43, … } | null, hasImage 0|1] } }
+//   dist/index-ja.json      rewritten: empty sets filled with cards built from TCGplayer products (English
+//                           names — the official Japanese names come later from tools/ja-names.mjs),
+//                           every set gets `en` (TCGplayer's English set name), and sets that still have
+//                           no cards (incl. the Chinese CS* sets TCGdex files under Japanese) are dropped.
 // tcgcsv usage guidelines (tcgcsv.com/docs#usage-guidelines): named User-Agent, ≥100 ms between requests,
-// one request at a time, at most one sync per day and only when last-updated.txt is newer
-// (~250 requests per sync; limit 10,000). The last sync is kept in cache/tcgcsv-ja.json (committed).
-// Usage: node tools/jp-prices.mjs   (after build.mjs — needs dist/index-ja.json)
+// one request at a time, one sync per day and only when last-updated.txt is newer. The last sync (cards,
+// filled sets, English names) is kept in cache/tcgcsv-ja.json (committed) and re-applied on other days.
+// Usage: node tools/jp-prices.mjs   (after build.mjs — needs dist/index-ja.json and dist/index-en.json)
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -19,9 +22,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-pipeline');
 const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(DIST, 'tcgplayer-ja.json');
+const IX_FILE = path.join(DIST, 'index-ja.json');
 const BASE = 'https://tcgcsv.com/tcgplayer/85';
 const UA = { 'User-Agent': 'TCGMarketplaceData/1.0 (+https://github.com/risingmediajp/tcg-marketplace-data)' };
 const CACHE_FILE = path.join(ROOT, 'cache', 'tcgcsv-ja.json');
+const CACHE_V = 4;
 const MIN_CARDS = 1000; // fewer means something changed upstream: keep the last good sync
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -41,53 +46,84 @@ async function get(url) {
 }
 // "035/083" → "35"; codes like "SV-P 012" compare as printed (upper-case).
 const normNum = (n) => { const s = String(n ?? '').split('/')[0].trim(); return /^\d+$/.test(s) ? String(Number(s)) : s.toUpperCase(); };
+// TCGdex-style local id for a TCGplayer number: "35/83" → "035", "SV-P 012" → "SV-P 012".
+const localIdOf = (n) => { const s = String(n ?? '').split('/')[0].trim(); return /^\d+$/.test(s) ? s.padStart(3, '0') : s; };
+const productNum = (p) => (p.extendedData ?? []).find((e) => e.name === 'Number')?.value;
+const productRarity = (p) => { const r = (p.extendedData ?? []).find((e) => e.name === 'Rarity')?.value ?? ''; return /^none$/i.test(r) ? '' : r; };
+// "Mega Floette ex - 115/083" → "Mega Floette ex"
+const cardName = (p) => p.name.replace(/\s*[-–]\s*[A-Za-z0-9-]+\s*\d*\/\d+\s*$/, '').replace(/\s*\(.*\)\s*$/, '').trim();
 // TCGplayer printing → TCGdex pricing key (what the app's priceFor() reads).
 const KEY = { Holofoil: 'holofoil', Normal: 'normal', 'Reverse Holofoil': 'reverse-holofoil', '1st Edition Holofoil': '1st-edition-holofoil', '1st Edition': '1st-edition-normal', Unlimited: 'unlimited-normal', 'Unlimited Holofoil': 'unlimited-holofoil' };
+const day = (d) => Date.parse(String(d).slice(0, 10)) / 864e5;
+const groupEnName = (g) => g.name.replace(/^[A-Za-z0-9.+-]+:\s*/, '').trim();
 
-async function sync(ix) {
-  const setByCode = new Map(ix.sets.map((s, i) => [s.id.toLowerCase(), i]));
-  const cardsBySet = new Map();
+// Species by English name, longest name first, so "Mega Charizard X ex" → Charizard, "Mr. Mime" → Mr. Mime.
+function speciesFinder(en) {
+  const list = en.species.map(([dex, name]) => [dex, name.toLowerCase()]).sort((a, b) => b[1].length - a[1].length);
+  return (name) => {
+    const n = ` ${name.toLowerCase()} `;
+    const hit = list.find(([, s]) => n.includes(` ${s} `) || n.includes(`'s ${s} `));
+    return hit ? [hit[0]] : [];
+  };
+}
+
+async function sync(ix, en) {
+  const findSpecies = speciesFinder(en);
+  const cardsBySet = new Map(); // si -> Map(num -> id)
   for (const [id, , si, localId] of ix.cards) {
     if (!cardsBySet.has(si)) cardsBySet.set(si, new Map());
     cardsBySet.get(si).set(normNum(localId), id);
   }
-  // Set codes: exact, or TCGdex's "p" for TCGplayer's "+" (SM3p = SM3+).
   const code = (a) => a.toLowerCase().replace(/\+$/, 'p');
   const all = await get(`${BASE}/groups`);
   const byCode = new Map(all.filter((g) => g.abbreviation).map((g) => [code(g.abbreviation), g]));
-  // Older sets have no code on TCGplayer: candidates released within 2 days of ours; the one whose
-  // card numbers match best wins (needs ≥30% of the set).
-  const day = (d) => Date.parse(String(d).slice(0, 10)) / 864e5;
+  // Candidates per set: the same code, else groups released within 2 days. Sets with cards pick the
+  // candidate whose numbers match best; empty sets can't, so twin halves released together
+  // (XY1a/XY1b ↔ Collection X/Y) are paired by order: TCGdex's "a" with the lower TCGplayer group id.
   const plan = [];
   ix.sets.forEach((s, si) => {
+    const empty = !cardsBySet.get(si)?.size;
     const g = byCode.get(s.id.toLowerCase());
-    if (g) plan.push({ si, cands: [g] });
-    else if (s.date) {
-      const cands = all.filter((x) => !x.abbreviation && Math.abs(day(x.publishedOn) - day(s.date)) <= 2);
-      if (cands.length) plan.push({ si, cands, byDate: true });
-    }
+    if (g) { plan.push({ si, cands: [g], empty }); return; }
+    if (!s.date) return;
+    const cands = all.filter((x) => Math.abs(day(x.publishedOn) - day(s.date)) <= 2 && !ix.sets.some((o) => o !== s && code(x.abbreviation ?? '') === o.id.toLowerCase()));
+    if (cands.length) plan.push({ si, cands, byDate: true, empty });
   });
   log(`tcgplayer-ja: ${plan.length} of ${ix.sets.length} Japanese sets have TCGplayer candidates`);
 
-  const out = {};
+  const out = {}, enNames = {}, synth = {};
   const fetched = new Map();
   const load = async (g) => {
     if (!fetched.has(g.groupId)) fetched.set(g.groupId, { products: await get(`${BASE}/${g.groupId}/products`), prices: await get(`${BASE}/${g.groupId}/prices`) });
     return fetched.get(g.groupId);
   };
-  for (const { si, cands, byDate } of plan) {
-    const byNum = cardsBySet.get(si);
-    if (!byNum) continue;
-    let products, prices;
+  for (const { si, cands, byDate, empty } of plan) {
+    const s = ix.sets[si];
+    let byNum = cardsBySet.get(si) ?? new Map();
+    let products, prices, group;
     try {
-      let bestHits = -1;
-      for (const g of cands) {
+      let bestHits = -1, bestGap = Infinity;
+      // Empty sets can't be matched by card numbers: take the candidate whose card count is closest to
+      // the set's official count (a deck kit released the same day loses to the real set); twin halves
+      // with equal counts (XY1a/XY1b ↔ Collection X/Y) are paired by order, TCGdex "a" ↔ lower group id.
+      const ordered = empty ? [...cands].sort((a, b) => a.groupId - b.groupId) : cands;
+      const twinK = empty ? ix.sets.filter((o) => o.date === s.date && !cardsBySet.get(ix.sets.indexOf(o))?.size).sort((a, b) => a.id.localeCompare(b.id)).indexOf(s) : 0;
+      for (const [k, g] of ordered.entries()) {
         const d = await load(g);
-        const hits = d.products.filter((p) => byNum.has(normNum((p.extendedData ?? []).find((e) => e.name === 'Number')?.value))).length;
-        if (hits > bestHits) { bestHits = hits; ({ products, prices } = d); }
+        const numbered = d.products.filter((p) => productNum(p)).length;
+        if (empty) {
+          // Count gap in steps of 10 (a 33-card deck kit vs an 80-card set), then order for twins.
+          const gap = Math.floor(Math.abs(numbered - (s.official || s.total || numbered)) / 10) + (k === twinK ? 0 : 0.5);
+          if (numbered >= 5 && gap < bestGap) { bestGap = gap; bestHits = numbered; ({ products, prices } = d); group = g; }
+        } else {
+          const hits = d.products.filter((p) => byNum.has(normNum(productNum(p)))).length;
+          if (hits > bestHits) { bestHits = hits; ({ products, prices } = d); group = g; }
+        }
       }
-      if (byDate && bestHits < byNum.size * 0.3) continue;
+      if (byDate && !empty && bestHits < byNum.size * 0.3) continue;
+      if (empty && bestHits < 5) continue;
     } catch (e) { console.log(`::warning::${e.message}`); continue; }
+    enNames[s.id] = groupEnName(group);
     const priceBy = new Map();
     for (const p of prices) {
       const v = p.marketPrice ?? p.midPrice;
@@ -98,10 +134,30 @@ async function sync(ix) {
     // One product per printed number. Preference: plain card over pattern/stamp variants
     // ("… (Master Ball Pattern)"), then priced, then pictured.
     const score = (p) => (!/\(/.test(p.name) ? 4 : 0) + (priceBy.has(p.productId) ? 2 : 0) + (p.imageCount > 0 || p.imageUrl ? 1 : 0);
+    if (empty) {
+      // Build the set's cards from the products (English names for now).
+      const bestByNum = new Map();
+      for (const p of products) {
+        const num = productNum(p);
+        if (!num) continue;
+        const k = normNum(num);
+        if (!bestByNum.has(k) || score(p) > score(bestByNum.get(k))) bestByNum.set(k, p);
+      }
+      const rows = [];
+      for (const [, p] of [...bestByNum.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) {
+        const localId = localIdOf(productNum(p));
+        const id = `${s.id}-${localId}`;
+        const name = cardName(p);
+        const pr = priceBy.get(p.productId) ?? {};
+        const vb = (pr['reverse-holofoil'] ? 2 : 0) | (pr.holofoil ? 4 : 0) | (pr.normal || !pr.holofoil ? 1 : 0);
+        rows.push([id, name, localId, findSpecies(name), productRarity(p), vb]);
+        byNum.set(normNum(productNum(p)), id);
+      }
+      synth[s.id] = rows;
+    }
     const best = new Map();
     for (const p of products) {
-      const num = (p.extendedData ?? []).find((e) => e.name === 'Number')?.value;
-      const id = num && byNum.get(normNum(num));
+      const id = byNum.get(normNum(productNum(p)));
       if (!id) continue;
       const cur = best.get(id);
       if (!cur || score(p) > score(cur)) best.set(id, p);
@@ -111,29 +167,60 @@ async function sync(ix) {
       if (priceBy.has(p.productId) || img) out[id] = [p.productId, priceBy.get(p.productId) ?? null, img];
     }
   }
-  return out;
+  return { cards: out, enNames, synth };
 }
 
-const ix = JSON.parse(await fs.readFile(path.join(DIST, 'index-ja.json'), 'utf8'));
+// Apply a sync's filled sets + English names to the index, then drop sets that still have no cards.
+function applyToIndex(ix, { enNames, synth }) {
+  const rarityIdx = (r) => { let i = ix.rarities.indexOf(r); if (i < 0) { i = ix.rarities.length; ix.rarities.push(r); } return i; };
+  const count = new Map();
+  for (const c of ix.cards) count.set(c[2], (count.get(c[2]) ?? 0) + 1);
+  let added = 0;
+  ix.sets.forEach((s, si) => {
+    if (enNames[s.id]) s.en = enNames[s.id];
+    if (count.get(si) || !synth[s.id]) return;
+    for (const [id, name, localId, dex, rarity, vb] of synth[s.id]) {
+      ix.cards.push([id, name, si, localId, dex, rarityIdx(rarity), vb, 0]);
+      added++;
+    }
+    count.set(si, synth[s.id].length);
+  });
+  const keep = ix.sets.map((s, si) => (count.get(si) ?? 0) > 0);
+  const newIndex = new Map();
+  ix.sets = ix.sets.filter((s, si) => { if (!keep[si]) return false; newIndex.set(si, newIndex.size); return true; });
+  const dropped = keep.filter((k) => !k).length;
+  ix.cards = ix.cards.filter((c) => keep[c[2]]).map((c) => { c[2] = newIndex.get(c[2]); return c; });
+  // Species list: make sure every dex number used has an entry (name = first card's name with that species).
+  const have = new Set(ix.species.map(([d]) => d));
+  for (const c of ix.cards) for (const d of c[4]) if (!have.has(d)) { have.add(d); ix.species.push([d, c[1]]); }
+  return { added, dropped };
+}
+
+const ix = JSON.parse(await fs.readFile(IX_FILE, 'utf8'));
+const en = JSON.parse(await fs.readFile(path.join(DIST, 'index-en.json'), 'utf8'));
 const lastUpdated = (await (await fetch('https://tcgcsv.com/last-updated.txt', { headers: UA })).text()).trim();
 const prev = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8').catch(() => 'null'));
-const prevOk = prev?.v === 3 && Object.keys(prev.cards ?? {}).length >= MIN_CARDS;
+const prevOk = prev?.v === CACHE_V && Object.keys(prev.cards ?? {}).length >= MIN_CARDS;
 
 let result = prevOk ? prev : null;
 if (prevOk && prev.lastUpdated === lastUpdated) {
   log(`tcgplayer-ja: tcgcsv unchanged since ${lastUpdated}, reusing ${Object.keys(prev.cards).length} cards`);
 } else {
-  const cards = await sync(ix);
-  const n = Object.keys(cards).length;
-  const priced = Object.values(cards).filter((c) => c[1]).length;
-  const pictured = Object.values(cards).filter((c) => c[2]).length;
-  log(`tcgplayer-ja: ${n} of ${ix.cards.length} Japanese cards matched (${priced} priced, ${pictured} pictured)`);
+  const r = await sync(ix, en);
+  const n = Object.keys(r.cards).length;
+  const priced = Object.values(r.cards).filter((c) => c[1]).length;
+  const pictured = Object.values(r.cards).filter((c) => c[2]).length;
+  log(`tcgplayer-ja: ${n} Japanese cards matched (${priced} priced, ${pictured} pictured); ${Object.keys(r.synth).length} empty sets filled from TCGplayer`);
   if (n >= MIN_CARDS) {
-    result = { v: 3, lastUpdated, updated: new Date().toISOString(), cards };
+    result = { v: CACHE_V, lastUpdated, updated: new Date().toISOString(), ...r };
     await fs.writeFile(CACHE_FILE, JSON.stringify(result));
   } else {
     console.log('::warning::too few Japanese cards matched — republishing the previous sync');
   }
 }
-if (result) await fs.writeFile(OUT, JSON.stringify({ updated: result.updated, cards: result.cards }));
-else console.log('::warning::no TCGplayer Japan data to publish');
+if (result) {
+  const { added, dropped } = applyToIndex(ix, result);
+  await fs.writeFile(IX_FILE, JSON.stringify(ix));
+  await fs.writeFile(OUT, JSON.stringify({ updated: result.updated, cards: result.cards }));
+  log(`index-ja: +${added} cards in filled sets, ${dropped} empty sets dropped → ${ix.sets.length} sets, ${ix.cards.length} cards`);
+} else console.log('::warning::no TCGplayer Japan data to publish');

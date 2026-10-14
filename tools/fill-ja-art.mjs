@@ -86,8 +86,12 @@ async function detail(lang, id) {
   if (details[k] !== undefined) return details[k];
   await sleep(80);
   const d = await getJson(`${API}/${lang}/cards/${encodeURIComponent(id)}`);
+  // TCGdex leaves energyType blank on Japanese energy cards: read it off the name (基本草エネルギー → Grass).
+  const JA_ENERGY = { 草: 'Grass', 炎: 'Fire', 水: 'Water', 雷: 'Lightning', 超: 'Psychic', 闘: 'Fighting', 悪: 'Darkness', 鋼: 'Metal', 無色: 'Colorless' };
+  const energyFromName = (n) => Object.entries(JA_ENERGY).find(([k]) => String(n ?? '').includes(k))?.[1] ?? null;
   details[k] = d ? {
-    cat: d.category, hp: d.hp ?? null, stage: d.stage ?? null, retreat: d.retreat ?? null, energy: d.energyType ?? null,
+    cat: d.category, hp: d.hp ?? null, stage: d.stage ?? null, retreat: d.retreat ?? null,
+    energy: d.energyType ?? (d.category === 'Energy' ? energyFromName(d.name) : null),
     // Variable damage ("30×", "10+") is blank in TCGdex's Japanese data: compare fixed damage only.
     atk: (d.attacks ?? []).map((a) => `${[...(a.cost ?? [])].sort().join('+')}=${/^\d+$/.test(String(a.damage ?? '')) ? a.damage : ''}`),
     dex: d.dexId ?? [],
