@@ -27,6 +27,9 @@ jobs:
     env:
       BULBA_PROXY: ${{ secrets.BULBA_PROXY }}
       BULBA_KEY: ${{ secrets.BULBA_KEY }}
+      # onnxruntime-node's postinstall downloads a 300 MB CUDA package from nuget.org that the CPU
+      # embeddings never use; that download timing out failed run #32. Skip it.
+      ONNXRUNTIME_NODE_INSTALL: skip
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -143,5 +146,10 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: data-pipeline/dist
+      # GitHub Pages returns the odd 502 / "no artifact" at deploy time (runs #20, #33) after a good
+      # build: try once more before failing the run.
       - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
